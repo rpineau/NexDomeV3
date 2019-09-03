@@ -1603,7 +1603,7 @@ int CNexDomeV3::getRotationSpeed(int &nSpeed)
         return nErr;
     }
     // need to parse
-    nSpeed = atoi(szResp);
+    nSpeed = atoi(szResp+3);
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -1643,7 +1643,7 @@ int CNexDomeV3::getRotationAcceleration(int &nAcceleration)
         return nErr;
     }
     // need parsing
-    nAcceleration = atoi(szResp);
+    nAcceleration = atoi(szResp+3);
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -1683,7 +1683,7 @@ int CNexDomeV3::getShutterSpeed(int &nSpeed)
         return nErr;
     }
     // need parsing
-    nSpeed = atoi(szResp);
+    nSpeed = atoi(szResp+3);
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -1723,7 +1723,7 @@ int CNexDomeV3::getShutterAcceleration(int &nAcceleration)
         return nErr;
     }
     // need parsing
-    nAcceleration = atoi(szResp);
+    nAcceleration = atoi(szResp+3);
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
