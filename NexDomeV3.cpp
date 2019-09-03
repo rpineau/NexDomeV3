@@ -750,35 +750,22 @@ bool CNexDomeV3::isDomeMoving()
 			if(nErr && nErr != ERR_DATAOUT)
 				return m_bDomeIsMoving;
 
-			if(nErr == ERR_DATAOUT) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-				ltime = time(NULL);
-				timestamp = asctime(localtime(&ltime));
-				timestamp[strlen(timestamp) - 1] = 0;
-				fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving]  ERR_DATAOUT, szResp = '%s'\n", timestamp, szResp);
-				fflush(Logfile);
-#endif
-				if(strlen(szResp)) {
-					// partial response ?
+			if(strlen(szResp)) {
+				switch(szResp[0]) {
+					case 'P' :
+						nStepPos = atoi(szResp+1); // Pxxxxx
+						// convert steps to deg
+						m_dCurrentAzPosition = (double(nStepPos)/m_nNbStepPerRev) * 360.0;
+						break;
+					case ':' :
+						// :SER is sent at the end of the move-> parse :SER,0,0,55080,0,300#
+						if(strstr(szResp,"SER")) {
+							m_bDomeIsMoving = false;
+						}
+						break;
+					default:
+						break;
 				}
-				else
-					return m_bDomeIsMoving;
-			}
-
-			switch(szResp[0]) {
-				case 'P' :
-					nStepPos = atoi(szResp+1); // Pxxxxx
-					// convert steps to deg
-					m_dCurrentAzPosition = (double(nStepPos)/m_nNbStepPerRev) * 360.0;
-					break;
-				case ':' :
-					// :SER is sent at the end of the move-> parse :SER,0,0,55080,0,300#
-					if(strstr(szResp,"SER")) {
-						m_bDomeIsMoving = false;
-					}
-					break;
-				default:
-					break;
 			}
 		}
 	} while(nbByteWaiting);
@@ -1165,8 +1152,8 @@ int CNexDomeV3::isGoToComplete(bool &bComplete)
         bComplete = false;
         return nErr;
     }
-	m_bDomeIsMoving = false;
-    getDomeAz(dDomeAz);
+
+	getDomeAz(dDomeAz);
     if(dDomeAz >0 && dDomeAz<1)
         dDomeAz = 0;
     
@@ -1334,9 +1321,8 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
         return nErr;
 
     }
-	m_bDomeIsMoving = false;
 
-    if(isDomeAtHome()){
+	if(isDomeAtHome()){
         m_bHomed = true;
         bComplete = true;
         syncDome(m_dHomeAz, m_dCurrentElPosition);
@@ -1390,7 +1376,6 @@ int CNexDomeV3::isCalibratingComplete(bool &bComplete)
         return nErr;
     }
 
-	m_bDomeIsMoving = false;
     nErr = getDomeAz(dDomeAz);
 
     if (ceil(m_dHomeAz) != ceil(dDomeAz)) {
