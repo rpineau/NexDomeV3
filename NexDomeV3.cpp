@@ -1664,7 +1664,7 @@ int CNexDomeV3::setRotationAcceleration(int nAcceleration)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    snprintf(szBuf, SERIAL_BUFFER_SIZE, "@AWR,%d#", nAcceleration);
+    snprintf(szBuf, SERIAL_BUFFER_SIZE, "@AWR,%d\r\n", nAcceleration);
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
 
     return nErr;
@@ -1744,7 +1744,7 @@ int CNexDomeV3::setShutterAcceleration(int nAcceleration)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    snprintf(szBuf, SERIAL_BUFFER_SIZE, "@AWS.%d#", nAcceleration);
+    snprintf(szBuf, SERIAL_BUFFER_SIZE, "@AWS,%d\r\n", nAcceleration);
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
     return nErr;
 }
