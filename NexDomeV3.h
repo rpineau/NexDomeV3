@@ -40,7 +40,7 @@
 // error codes
 // Error code
 enum NexDomeErrors {PLUGIN_OK=0, NOT_CONNECTED, PLUGIN_CANT_CONNECT, PLUGIN_BAD_CMD_RESPONSE, COMMAND_FAILED};
-enum NexDomeShutterState {OPEN = 0, CLOSED, OPENING, CLOSING, SHUTTER_ERROR };
+enum NexDomeShutterState {OPEN = 0, CLOSED, OPENING, CLOSING, IDLE, SHUTTER_ERROR };
 enum HomeStatuses {NEVER_HOMED = 0, HOMED, ATHOME};
 // RG-11
 enum RainSensorStates {RAINING= 0, NOT_RAINING};
@@ -120,7 +120,9 @@ public:
 	
 protected:
     
-    int             readResponse(char *respBuffer, int nBufferLen);
+	int             domeCommand(const char *cmd, char *result, int resultMaxLen);
+    int             readResponse(char *respBuffer, int nBufferLen, int nTimeout = MAX_TIMEOUT);
+
     int             getDomeAz(double &dDomeAz);
     int             getDomeEl(double &dDomeEl);
     int             getDomeHomeAz(double &dAz);
@@ -134,7 +136,6 @@ protected:
 
     bool            isDomeMoving();
     bool            isDomeAtHome();
-    int             domeCommand(const char *cmd, char *result, int resultMaxLen);
     int             parseFields(const char *pszResp, std::vector<std::string> &svFields, char cSeparator);
 
     std::string&    trim(std::string &str, const std::string &filter );
@@ -160,7 +161,8 @@ protected:
     double          m_dParkAz;
     
     int             m_nShutterSteps;
-    
+	int				m_nCurrentShutterCmd;
+
     double          m_dCurrentAzPosition;
     double          m_dCurrentElPosition;
 
