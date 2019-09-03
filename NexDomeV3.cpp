@@ -725,7 +725,6 @@ int CNexDomeV3::getdShutterVolts(double &dShutterVolts)
 
 bool CNexDomeV3::isDomeMoving()
 {
-    bool bIsMoving;
     int nErr = PLUGIN_OK;
     char szResp[SERIAL_BUFFER_SIZE];
 	int nStepPos;
@@ -741,28 +740,33 @@ bool CNexDomeV3::isDomeMoving()
 	ltime = time(NULL);
 	timestamp = asctime(localtime(&ltime));
 	timestamp[strlen(timestamp) - 1] = 0;
-	fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving]\n", timestamp);
+	fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving] In : m_bDomeIsMoving = %s\n", timestamp, m_bDomeIsMoving?"Yes":"No");
 	fflush(Logfile);
 #endif
-	bIsMoving = true;
 	do {
 		m_pSerx->bytesWaitingRx(nbByteWaiting);
 		if(nbByteWaiting) {
 			nErr = readResponse(szResp, SERIAL_BUFFER_SIZE, 250);
 			if(nErr && nErr != ERR_DATAOUT)
-				return bIsMoving;
+				return m_bDomeIsMoving;
 
 			if(nErr == ERR_DATAOUT) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+				ltime = time(NULL);
+				timestamp = asctime(localtime(&ltime));
+				timestamp[strlen(timestamp) - 1] = 0;
+				fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving]  ERR_DATAOUT, szResp = '%s'\n", timestamp, szResp);
+				fflush(Logfile);
+#endif
 				if(strlen(szResp)) {
 					// partial response ?
 				}
 				else
-					return bIsMoving;
+					return m_bDomeIsMoving;
 			}
 
 			switch(szResp[0]) {
 				case 'P' :
-					bIsMoving = true;
 					nStepPos = atoi(szResp+1); // Pxxxxx
 					// convert steps to deg
 					m_dCurrentAzPosition = (double(nStepPos)/m_nNbStepPerRev) * 360.0;
@@ -770,15 +774,10 @@ bool CNexDomeV3::isDomeMoving()
 				case ':' :
 					// :SER is sent at the end of the move-> parse :SER,0,0,55080,0,300#
 					if(strstr(szResp,"SER")) {
-						bIsMoving = false;
 						m_bDomeIsMoving = false;
-					}
-					else {
-						bIsMoving = true;
 					}
 					break;
 				default:
-					bIsMoving = true;
 					break;
 			}
 		}
@@ -788,11 +787,11 @@ bool CNexDomeV3::isDomeMoving()
 	ltime = time(NULL);
 	timestamp = asctime(localtime(&ltime));
 	timestamp[strlen(timestamp) - 1] = 0;
-	fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving] bIsMoving = %s\n", timestamp, bIsMoving?"Yes":"No");
+	fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving] Out: m_bDomeIsMoving = %s\n", timestamp, m_bDomeIsMoving?"Yes":"No");
 	fflush(Logfile);
 #endif
 
-    return bIsMoving;
+    return m_bDomeIsMoving;
 }
 
 bool CNexDomeV3::isDomeAtHome()
