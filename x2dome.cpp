@@ -152,15 +152,17 @@ int X2Dome::execModalSettingsDialog()
     }
 
     if(m_bLinked) {
+		dx->setEnabled("pushButton",false);	 // calibrate
         dx->setEnabled("homePosition",true);
-        dx->setEnabled("needReverse",true);
+		dx->setEnabled("needReverse",false);
+		/*
         nErr = m_NexDome.getDefaultDir(nReverseDir);
         if(nReverseDir)
             dx->setChecked("needReverse",false);
         else
             dx->setChecked("needReverse",true);
 
-
+		 */
         // read values from dome controller
         dx->setEnabled("ticksPerRev",true);
         n_nbStepPerRev = m_NexDome.getNbTicksPerRev();
@@ -240,9 +242,9 @@ int X2Dome::execModalSettingsDialog()
         dx->propertyInt("shutterSpeed", "value", nSSpeed);
         dx->propertyInt("shutterAcceleration", "value", nSAcc);
         m_bHasShutterControl = dx->isChecked("hasShutterCtrl");
-        nReverseDir = dx->isChecked("needReverse");
+        // nReverseDir = dx->isChecked("needReverse");
         if(m_bLinked) {
-            m_NexDome.setDefaultDir(!nReverseDir);
+            // m_NexDome.setDefaultDir(!nReverseDir);
             m_NexDome.setHomeAz(dHomeAz);
             m_NexDome.setNbTicksPerRev(n_nbStepPerRev);
             m_NexDome.setRotationSpeed(nRSpeed);
