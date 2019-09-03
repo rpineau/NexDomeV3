@@ -23,6 +23,7 @@ CNexDomeV3::CNexDomeV3()
     m_dCurrentAzPosition = 0.0;
     m_dCurrentElPosition = 0.0;
 
+	m_bDomeIsMoving = false;
     m_bCalibrating = false;
 
     m_bShutterOpened = false;
@@ -96,6 +97,7 @@ int CNexDomeV3::Connect(const char *pszPort)
     }
     m_bIsConnected = true;
     m_bCalibrating = false;
+	m_bDomeIsMoving = false;
     m_bHomed = false;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -172,6 +174,7 @@ void CNexDomeV3::Disconnect()
     }
     m_bIsConnected = false;
     m_bCalibrating = false;
+	m_bDomeIsMoving = false;
     m_bHomed = false;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -412,8 +415,10 @@ int CNexDomeV3::getDomeAz(double &dDomeAz)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating)
-        return nErr;
+    if(m_bCalibrating || m_bDomeIsMoving) {
+		dDomeAz = m_dCurrentAzPosition;
+		return nErr;
+	}
 
     nErr = domeCommand("@PRR\r\n", szResp,  SERIAL_BUFFER_SIZE);
     if(nErr) {
@@ -461,8 +466,10 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating)
-        return nErr;
+	if(m_bCalibrating || m_bDomeIsMoving) {
+		dDomeEl = m_dCurrentElPosition;
+		return nErr;
+	}
 
     if(!m_bShutterOpened)
     {
@@ -513,8 +520,10 @@ int CNexDomeV3::getDomeHomeAz(double &dAz)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating)
-        return nErr;
+	if(m_bCalibrating || m_bDomeIsMoving) {
+		dAz = m_dHomeAz;
+		return nErr;
+	}
 
     nErr = domeCommand("@HRR\r\n", szResp, SERIAL_BUFFER_SIZE);
     if(nErr) {
@@ -554,9 +563,11 @@ int CNexDomeV3::getShutterState(int &nState)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating)
-        return nErr;
-	
+	if(m_bCalibrating || m_bDomeIsMoving) {
+		nState = m_nShutterState;
+		return nErr;
+	}
+
     nErr = domeCommand("@SRS\r\n", szResp, SERIAL_BUFFER_SIZE);
     if(nErr) {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -723,6 +734,16 @@ bool CNexDomeV3::isDomeMoving()
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
+	if(!m_bDomeIsMoving)
+		return false;
+
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+	ltime = time(NULL);
+	timestamp = asctime(localtime(&ltime));
+	timestamp[strlen(timestamp) - 1] = 0;
+	fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving]\n", timestamp);
+	fflush(Logfile);
+#endif
 	bIsMoving = true;
 	do {
 		m_pSerx->bytesWaitingRx(nbByteWaiting);
@@ -748,10 +769,13 @@ bool CNexDomeV3::isDomeMoving()
 					break;
 				case ':' :
 					// :SER is sent at the end of the move-> parse :SER,0,0,55080,0,300#
-					if(strstr(szResp,"SER"))
+					if(strstr(szResp,"SER")) {
 						bIsMoving = false;
-					else
+						m_bDomeIsMoving = false;
+					}
+					else {
 						bIsMoving = true;
+					}
 					break;
 				default:
 					bIsMoving = true;
@@ -759,6 +783,14 @@ bool CNexDomeV3::isDomeMoving()
 			}
 		}
 	} while(nbByteWaiting);
+
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+	ltime = time(NULL);
+	timestamp = asctime(localtime(&ltime));
+	timestamp[strlen(timestamp) - 1] = 0;
+	fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving] bIsMoving = %s\n", timestamp, bIsMoving?"Yes":"No");
+	fflush(Logfile);
+#endif
 
     return bIsMoving;
 }
@@ -890,6 +922,7 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 
     m_dGotoAz = dNewAz;
     m_nGotoTries = 0;
+	m_bDomeIsMoving = true;
     return nErr;
 }
 
@@ -901,8 +934,9 @@ int CNexDomeV3::openShutter()
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating)
+	if(m_bCalibrating || m_bDomeIsMoving) {
         return SB_OK;
+	}
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -944,9 +978,9 @@ int CNexDomeV3::closeShutter()
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating)
+	if(m_bCalibrating || m_bDomeIsMoving) {
         return SB_OK;
-
+	}
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -983,9 +1017,9 @@ int CNexDomeV3::getFirmwareVersion(char *szVersion, int nStrMaxLen)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating)
+	if(m_bCalibrating || m_bDomeIsMoving) {
         return SB_OK;
-
+	}
     nErr = domeCommand("@FRR\r\n", szResp, SERIAL_BUFFER_SIZE);
     if(nErr) {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -1063,7 +1097,7 @@ int CNexDomeV3::goHome()
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    if(m_bCalibrating) {
+	if(m_bCalibrating || m_bDomeIsMoving) {
         return SB_OK;
     }
     else if(isDomeAtHome()){
@@ -1090,7 +1124,7 @@ int CNexDomeV3::goHome()
 #endif
         return nErr;
     }
-
+	m_bDomeIsMoving = true;
     return nErr;
 }
 
@@ -1115,7 +1149,8 @@ int CNexDomeV3::calibrate()
         return nErr;
     }
     m_bCalibrating = true;
-    
+	m_bDomeIsMoving = true;
+
     return nErr;
 }
 
@@ -1129,10 +1164,9 @@ int CNexDomeV3::isGoToComplete(bool &bComplete)
 
     if(isDomeMoving()) {
         bComplete = false;
-        getDomeAz(dDomeAz);
         return nErr;
     }
-
+	m_bDomeIsMoving = false;
     getDomeAz(dDomeAz);
     if(dDomeAz >0 && dDomeAz<1)
         dDomeAz = 0;
@@ -1301,6 +1335,7 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
         return nErr;
 
     }
+	m_bDomeIsMoving = false;
 
     if(isDomeAtHome()){
         m_bHomed = true;
@@ -1356,7 +1391,7 @@ int CNexDomeV3::isCalibratingComplete(bool &bComplete)
         return nErr;
     }
 
-    
+	m_bDomeIsMoving = false;
     nErr = getDomeAz(dDomeAz);
 
     if (ceil(m_dHomeAz) != ceil(dDomeAz)) {
@@ -1396,6 +1431,7 @@ int CNexDomeV3::abortCurrentCommand()
     m_bHomed = false;
     m_bParked = false;
     m_bCalibrating = false;
+	m_bDomeIsMoving = false;
     m_nGotoTries = 1;   // prevents the goto retry
     m_nHomingTries = 1; // prevents the find home retry
     

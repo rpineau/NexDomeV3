@@ -154,7 +154,8 @@ protected:
     bool            m_bParked;
     bool            m_bShutterOpened;
     bool            m_bCalibrating;
-    
+	bool			m_bDomeIsMoving;
+
     int             m_nNbStepPerRev;
     double          m_dShutterBatteryVolts;
     double          m_dHomeAz;
