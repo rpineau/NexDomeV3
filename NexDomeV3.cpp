@@ -1470,6 +1470,23 @@ double CNexDomeV3::getHomeAz()
     return m_dHomeAz;
 }
 
+int CNexDomeV3::getShutterStepsRange()
+{
+	if(m_bIsConnected)
+		getShutterSteps(m_nShutterSteps);
+	return m_nShutterSteps;
+}
+
+int CNexDomeV3::setShutterStepsRange(int nSteps)
+{
+	int nErr = PLUGIN_OK;
+
+	if(m_bIsConnected)
+		nErr = setShutterSteps(nSteps);
+	return nErr;
+}
+
+
 int CNexDomeV3::setHomeAz(double dAz)
 {
     int nErr = PLUGIN_OK;

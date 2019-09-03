@@ -134,7 +134,7 @@ int X2Dome::execModalSettingsDialog()
     if (NULL == ui)
         return ERR_POINTER;
 
-    if ((nErr = ui->loadUserInterface("NexDome.ui", deviceType(), m_nPrivateISIndex)))
+    if ((nErr = ui->loadUserInterface("NexDomeV3.ui", deviceType(), m_nPrivateISIndex)))
         return nErr;
 
     if (NULL == (dx = uiutil.X2DX()))
@@ -174,6 +174,10 @@ int X2Dome::execModalSettingsDialog()
         m_NexDome.getRotationAcceleration(nRAcc);
         dx->setPropertyInt("rotationAcceletation","value", nRAcc);
 
+		dx->setEnabled("shutterTicks",true);
+		n_ShutterSteps = m_NexDome.getShutterStepsRange();
+		dx->setPropertyInt("shutterTicks","value", n_ShutterSteps);
+
         dx->setEnabled("shutterSpeed",true);
         m_NexDome.getShutterSpeed(nSSpeed);
         dx->setPropertyInt("shutterSpeed","value", nSSpeed);
@@ -209,7 +213,8 @@ int X2Dome::execModalSettingsDialog()
         dx->setEnabled("ticksPerRev",false);
         dx->setEnabled("rotationSpeed",false);
         dx->setEnabled("rotationAcceletation",false);
-        dx->setEnabled("shutterSpeed",false);
+        dx->setEnabled("shutterTicks",false);
+		dx->setEnabled("shutterSpeed",false);
         dx->setEnabled("shutterAcceleration",false);
         dx->setPropertyString("shutterBatteryLevel","text", "--");
         dx->setEnabled("pushButton",false);
@@ -231,6 +236,7 @@ int X2Dome::execModalSettingsDialog()
         dx->propertyDouble("homePosition", "value", dHomeAz);
         dx->propertyInt("rotationSpeed", "value", nRSpeed);
         dx->propertyInt("rotationAcceletation", "value", nRAcc);
+		dx->propertyInt("shutterTicks", "value", n_ShutterSteps);
         dx->propertyInt("shutterSpeed", "value", nSSpeed);
         dx->propertyInt("shutterAcceleration", "value", nSAcc);
         m_bHasShutterControl = dx->isChecked("hasShutterCtrl");
@@ -242,6 +248,7 @@ int X2Dome::execModalSettingsDialog()
             m_NexDome.setRotationSpeed(nRSpeed);
             m_NexDome.setRotationAcceleration(nRAcc);
 			if(m_bHasShutterControl) {
+				m_NexDome.setShutterStepsRange(n_ShutterSteps);
 				m_NexDome.setShutterSpeed(nSSpeed);
 				m_NexDome.setShutterAcceleration(nSAcc);
 			}
@@ -388,17 +395,17 @@ void X2Dome::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
 
 void X2Dome::deviceInfoNameShort(BasicStringInterface& str) const					
 {
-	str = "NexDome";
+	str = "NexDome V3";
 }
 
 void X2Dome::deviceInfoNameLong(BasicStringInterface& str) const					
 {
-    str = "Nexdome";
+    str = "Nexdome V3";
 }
 
 void X2Dome::deviceInfoDetailedDescription(BasicStringInterface& str) const		
 {
-    str = "Nexdome Dome Rotation Kit";
+    str = "Nexdome V3 Dome Rotation Kit";
 }
 
  void X2Dome::deviceInfoFirmwareVersion(BasicStringInterface& str)					
@@ -417,7 +424,7 @@ void X2Dome::deviceInfoDetailedDescription(BasicStringInterface& str) const
 
 void X2Dome::deviceInfoModel(BasicStringInterface& str)
 {
-    str = "Nexdome Dome Rotation Kit";
+    str = "Nexdome Dome V3 Rotation Kit";
 }
 
 //
@@ -427,7 +434,7 @@ void X2Dome::deviceInfoModel(BasicStringInterface& str)
 
  void	X2Dome::driverInfoDetailedInfo(BasicStringInterface& str) const	
 {
-    str = "Nexdome Dome Rotation Kit X2 plugin by Rodolphe Pineau";
+    str = "Nexdome V3 Dome Rotation Kit X2 plugin by Rodolphe Pineau";
 }
 
 double	X2Dome::driverInfoVersion(void) const

@@ -86,6 +86,10 @@ public:
     int getNbTicksPerRev();
     int setNbTicksPerRev(int nSteps);
 
+	int getShutterStepsRange();
+	int setShutterStepsRange(int nSteps);
+
+
     int getBatteryLevel();
 
     double getHomeAz();
