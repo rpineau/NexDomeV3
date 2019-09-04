@@ -37,9 +37,14 @@ CNexDomeV3::CNexDomeV3()
     m_nGotoTries = 0;
 
     m_nIsRaining = NOT_RAINING;
-
+    m_bParking = false;
+    m_bUnParking = false;
+    
     m_dShutterVolts = -1.0;
     
+    m_bHomeOnPark = false;
+    m_bHomeOnUnpark = false;
+
     memset(m_szFirmwareVersion,0,SERIAL_BUFFER_SIZE);
     memset(m_szLogBuffer,0,PLUGIN_LOG_BUFFER_SIZE);
 
@@ -99,6 +104,8 @@ int CNexDomeV3::Connect(const char *pszPort)
     m_bCalibrating = false;
 	m_bDomeIsMoving = false;
     m_bHomed = false;
+    m_bParking = false;
+    m_bUnParking = false;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -176,6 +183,8 @@ void CNexDomeV3::Disconnect()
     m_bCalibrating = false;
 	m_bDomeIsMoving = false;
     m_bHomed = false;
+    m_bParking = false;
+    m_bUnParking = false;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -864,7 +873,11 @@ int CNexDomeV3::parkDome()
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    nErr = goHome();
+    if(m_bHomeOnPark) {
+        m_bParking = true;
+        nErr = goHome();
+    } else
+        nErr = gotoAzimuth(m_dParkAz);
     return nErr;
 
 }
@@ -872,7 +885,15 @@ int CNexDomeV3::parkDome()
 int CNexDomeV3::unparkDome()
 {
     int nErr = PLUGIN_OK;
-    nErr = goHome();
+    if(m_bHomeOnUnpark) {
+        m_bUnParking = true;
+        goHome();
+    }
+    else {
+        syncDome(m_dParkAz, m_dCurrentElPosition);
+        m_bParked = false;
+        m_bUnParking = false;
+    }
     return nErr;
 }
 
@@ -1269,13 +1290,66 @@ int CNexDomeV3::isCloseComplete(bool &bComplete)
 int CNexDomeV3::isParkComplete(bool &bComplete)
 {
     int nErr = PLUGIN_OK;
-
+    double dDomeAz=0;
+    bool bFoundHome;
+    
     if(!m_bIsConnected)
         return NOT_CONNECTED;
-
-    nErr = isFindHomeComplete(bComplete);
-    if(bComplete)
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] CNexDomeV3::isParkComplete m_bParking = %s\n", timestamp, m_bParking?"True":"False");
+    fprintf(Logfile, "[%s] CNexDomeV3::isParkComplete bComplete = %s\n", timestamp, bComplete?"True":"False");
+    fflush(Logfile);
+#endif
+    
+    if(isDomeMoving()) {
+        getDomeAz(dDomeAz);
+        bComplete = false;
+        return nErr;
+    }
+    
+    if(m_bParking) {
+        bComplete = false;
+        nErr = isFindHomeComplete(bFoundHome);
+        if(bFoundHome) { // we're home, now park
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] CNexDome::isParkComplete found home, now parking\n", timestamp);
+            fflush(Logfile);
+#endif
+            m_bParking = false;
+            nErr = gotoAzimuth(m_dParkAz);
+        }
+        return nErr;
+    }
+    
+    getDomeAz(dDomeAz);
+    
+    // we need to test "large" depending on the heading error
+    if ((ceil(m_dParkAz) <= ceil(dDomeAz)+3) && (ceil(m_dParkAz) >= ceil(dDomeAz)-3)) {
         m_bParked = true;
+        bComplete = true;
+    }
+    else {
+        // we're not moving and we're not at the final destination !!!
+        bComplete = false;
+        m_bHomed = false;
+        m_bParked = false;
+        nErr = ERR_CMDFAILED;
+    }
+    
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] CNexDome::isParkComplete bComplete = %s\n", timestamp, bComplete?"True":"False");
+    fflush(Logfile);
+#endif
+    
     return nErr;
 }
 
@@ -1283,13 +1357,49 @@ int CNexDomeV3::isUnparkComplete(bool &bComplete)
 {
     int nErr = PLUGIN_OK;
     
+    bComplete = false;
+    
     if(!m_bIsConnected)
         return NOT_CONNECTED;
     
-    nErr = isFindHomeComplete(bComplete);
-    if(bComplete)
-        m_bParked = false;
-
+    if(!m_bParked) {
+        bComplete = true;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete UNPARKED \n", timestamp);
+        fflush(Logfile);
+#endif
+    }
+    else if (m_bUnParking) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete unparking.. checking if we're home \n", timestamp);
+        fflush(Logfile);
+#endif
+        nErr = isFindHomeComplete(bComplete);
+        if(nErr)
+            return nErr;
+        if(bComplete) {
+            m_bParked = false;
+        }
+        else {
+            m_bParked = true;
+        }
+    }
+    
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete m_bParked = %s\n", timestamp, m_bParked?"True":"False");
+    fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete bComplete = %s\n", timestamp, bComplete?"True":"False");
+    fflush(Logfile);
+#endif
+    
     return nErr;
 }
 
@@ -1324,6 +1434,8 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
 
 	if(isDomeAtHome()){
         m_bHomed = true;
+        if(m_bUnParking)
+            m_bParked = false;
         bComplete = true;
         syncDome(m_dHomeAz, m_dCurrentElPosition);
         m_nHomingTries = 0;
@@ -1416,9 +1528,11 @@ int CNexDomeV3::abortCurrentCommand()
     m_bParked = false;
     m_bCalibrating = false;
 	m_bDomeIsMoving = false;
+    m_bParking = false;
+    m_bUnParking = false;
     m_nGotoTries = 1;   // prevents the goto retry
     m_nHomingTries = 1; // prevents the find home retry
-    
+
     nErr = domeCommand("@SWR\r\n", szResp, SERIAL_BUFFER_SIZE);
     nErr = domeCommand("@SWS\r\n", szResp, SERIAL_BUFFER_SIZE);
 
@@ -1470,23 +1584,6 @@ double CNexDomeV3::getHomeAz()
     return m_dHomeAz;
 }
 
-int CNexDomeV3::getShutterStepsRange()
-{
-	if(m_bIsConnected)
-		getShutterSteps(m_nShutterSteps);
-	return m_nShutterSteps;
-}
-
-int CNexDomeV3::setShutterStepsRange(int nSteps)
-{
-	int nErr = PLUGIN_OK;
-
-	if(m_bIsConnected)
-		nErr = setShutterSteps(nSteps);
-	return nErr;
-}
-
-
 int CNexDomeV3::setHomeAz(double dAz)
 {
     int nErr = PLUGIN_OK;
@@ -1504,6 +1601,36 @@ int CNexDomeV3::setHomeAz(double dAz)
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
     return nErr;
 }
+
+double CNexDomeV3::getParkAz()
+{
+    return m_dParkAz;
+}
+
+int CNexDomeV3::setParkAz(double dAz)
+{
+    m_dParkAz = dAz;
+    return PLUGIN_OK;
+}
+
+int CNexDomeV3::getShutterStepsRange()
+{
+	if(m_bIsConnected)
+		getShutterSteps(m_nShutterSteps);
+	return m_nShutterSteps;
+}
+
+int CNexDomeV3::setShutterStepsRange(int nSteps)
+{
+	int nErr = PLUGIN_OK;
+
+	if(m_bIsConnected)
+		nErr = setShutterSteps(nSteps);
+	return nErr;
+}
+
+
+
 
 
 double CNexDomeV3::getCurrentAz()
@@ -1747,6 +1874,16 @@ int CNexDomeV3::setShutterAcceleration(int nAcceleration)
     snprintf(szBuf, SERIAL_BUFFER_SIZE, "@AWS,%d\r\n", nAcceleration);
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
     return nErr;
+}
+
+void CNexDomeV3::setHomeOnPark(const bool bEnabled)
+{
+    m_bHomeOnPark = bEnabled;
+}
+
+void CNexDomeV3::setHomeOnUnpark(const bool bEnabled)
+{
+    m_bHomeOnUnpark = bEnabled;
 }
 
 

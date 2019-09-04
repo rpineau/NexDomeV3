@@ -33,9 +33,10 @@ class TickCountInterface;
 
 #define PARENT_KEY			"NexDomeV3"
 #define CHILD_KEY_PORTNAME	"PortName"
-#define CHILD_KEY_TICKS_PER_REV "NbTicksPerRev"
-#define CHILD_KEY_HOME_AZ "HomeAzimuth"
+#define CHILD_KEY_PARK_AZ "ParkAzimuth"
 #define CHILD_KEY_SHUTTER_CONTROL "ShutterCtrl"
+#define CHILD_KEY_HOME_ON_PARK "HomeOnPark"
+#define CHILD_KEY_HOME_ON_UNPARK "HomeOnUnpark"
 
 #if defined(SB_WIN_BUILD)
 #define DEF_PORT_NAME					"COM1"
@@ -161,6 +162,8 @@ private:
 	bool        m_bLinked;
     CNexDomeV3    m_NexDome;
     bool        m_bHasShutterControl;
+    bool        m_bHomeOnPark;
+    bool        m_bHomeOnUnpark;
     bool        m_bHomingDome;
     bool        m_bCalibratingDome;
     char        m_szLogBuffer[LOG_BUFFER_SIZE];

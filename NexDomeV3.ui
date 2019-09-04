@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>712</width>
-    <height>462</height>
+    <height>464</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>712</width>
-    <height>462</height>
+    <height>464</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>712</width>
-    <height>462</height>
+    <height>464</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -58,12 +58,25 @@
         <x>16</x>
         <y>104</y>
         <width>296</width>
-        <height>152</height>
+        <height>225</height>
        </rect>
       </property>
       <property name="title">
        <string>Dome params</string>
       </property>
+      <widget class="QCheckBox" name="homeOnUnpark">
+       <property name="geometry">
+        <rect>
+         <x>13</x>
+         <y>193</y>
+         <width>140</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Home after unpark</string>
+       </property>
+      </widget>
       <widget class="QPushButton" name="pushButton">
        <property name="geometry">
         <rect>
@@ -81,7 +94,7 @@
        <property name="geometry">
         <rect>
          <x>13</x>
-         <y>120</y>
+         <y>151</y>
          <width>183</width>
          <height>20</height>
         </rect>
@@ -94,13 +107,26 @@
        <property name="geometry">
         <rect>
          <x>13</x>
-         <y>96</y>
+         <y>130</y>
          <width>132</width>
          <height>20</height>
         </rect>
        </property>
        <property name="text">
         <string>Reverse direction</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="homeOnPark">
+       <property name="geometry">
+        <rect>
+         <x>13</x>
+         <y>172</y>
+         <width>136</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Home before park</string>
        </property>
       </widget>
       <widget class="QLabel" name="label_2">
@@ -135,6 +161,38 @@
         <double>359.990000000000009</double>
        </property>
       </widget>
+      <widget class="QLabel" name="label_3">
+       <property name="geometry">
+        <rect>
+         <x>32</x>
+         <y>88</y>
+         <width>144</width>
+         <height>24</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Park Postition (Deg.) :</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+      <widget class="QDoubleSpinBox" name="parkPosition">
+       <property name="geometry">
+        <rect>
+         <x>184</x>
+         <y>88</y>
+         <width>88</width>
+         <height>24</height>
+        </rect>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="maximum">
+        <double>359.990000000000009</double>
+       </property>
+      </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox">
       <property name="geometry">
@@ -142,7 +200,7 @@
         <x>336</x>
         <y>104</y>
         <width>336</width>
-        <height>280</height>
+        <height>240</height>
        </rect>
       </property>
       <property name="title">
@@ -248,7 +306,7 @@
        <property name="geometry">
         <rect>
          <x>224</x>
-         <y>208</y>
+         <y>200</y>
          <width>104</width>
          <height>24</height>
         </rect>
@@ -264,13 +322,13 @@
        <property name="geometry">
         <rect>
          <x>16</x>
-         <y>208</y>
+         <y>200</y>
          <width>200</width>
          <height>24</height>
         </rect>
        </property>
        <property name="text">
-        <string>Shutter acceleration (ms) :</string>
+        <string>Shutter acceleration (step/s) :</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -280,7 +338,7 @@
        <property name="geometry">
         <rect>
          <x>56</x>
-         <y>176</y>
+         <y>168</y>
          <width>160</width>
          <height>24</height>
         </rect>
@@ -296,7 +354,7 @@
        <property name="geometry">
         <rect>
          <x>224</x>
-         <y>176</y>
+         <y>168</y>
          <width>104</width>
          <height>24</height>
         </rect>
@@ -306,29 +364,13 @@
        </property>
        <property name="maximum">
         <number>999999999</number>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_15">
-       <property name="geometry">
-        <rect>
-         <x>16</x>
-         <y>144</y>
-         <width>200</width>
-         <height>24</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Shutter  steps per revolution) :</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
       <widget class="QSpinBox" name="shutterTicks">
        <property name="geometry">
         <rect>
          <x>224</x>
-         <y>144</y>
+         <y>136</y>
          <width>104</width>
          <height>24</height>
         </rect>
@@ -336,14 +378,24 @@
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
-       <property name="minimum">
-        <number>0</number>
-       </property>
        <property name="maximum">
         <number>999999999</number>
        </property>
-       <property name="value">
-        <number>0</number>
+      </widget>
+      <widget class="QLabel" name="label_13">
+       <property name="geometry">
+        <rect>
+         <x>8</x>
+         <y>136</y>
+         <width>208</width>
+         <height>24</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Shutter of steps per open/close :</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
      </widget>
@@ -389,7 +441,7 @@
       <property name="geometry">
        <rect>
         <x>496</x>
-        <y>400</y>
+        <y>384</y>
         <width>81</width>
         <height>24</height>
        </rect>
@@ -402,7 +454,7 @@
       <property name="geometry">
        <rect>
         <x>584</x>
-        <y>400</y>
+        <y>384</y>
         <width>81</width>
         <height>24</height>
        </rect>
@@ -418,9 +470,9 @@
       <property name="geometry">
        <rect>
         <x>16</x>
-        <y>264</y>
+        <y>336</y>
         <width>296</width>
-        <height>120</height>
+        <height>96</height>
        </rect>
       </property>
       <property name="title">
@@ -430,7 +482,7 @@
        <property name="geometry">
         <rect>
          <x>176</x>
-         <y>80</y>
+         <y>56</y>
          <width>96</width>
          <height>24</height>
         </rect>
@@ -439,27 +491,11 @@
         <string>Ok</string>
        </property>
       </widget>
-      <widget class="QLabel" name="label_7">
-       <property name="geometry">
-        <rect>
-         <x>32</x>
-         <y>32</y>
-         <width>136</width>
-         <height>24</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Dome battery level :</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-       </property>
-      </widget>
       <widget class="QLabel" name="shutterBatteryLevel">
        <property name="geometry">
         <rect>
          <x>176</x>
-         <y>56</y>
+         <y>32</y>
          <width>56</width>
          <height>24</height>
         </rect>
@@ -472,7 +508,7 @@
        <property name="geometry">
         <rect>
          <x>80</x>
-         <y>80</y>
+         <y>56</y>
          <width>88</width>
          <height>24</height>
         </rect>
@@ -484,27 +520,11 @@
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
-      <widget class="QLabel" name="domeBatteryLevel">
-       <property name="geometry">
-        <rect>
-         <x>176</x>
-         <y>32</y>
-         <width>56</width>
-         <height>24</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>12.25 V</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-       </property>
-      </widget>
       <widget class="QLabel" name="label_5">
        <property name="geometry">
         <rect>
          <x>24</x>
-         <y>56</y>
+         <y>32</y>
          <width>144</width>
          <height>24</height>
         </rect>

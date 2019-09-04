@@ -121,7 +121,9 @@ public:
     int getShutterAcceleration(int &nAcceleration);
     int setShutterAcceleration(int nAcceleration);
 
-	
+    void setHomeOnPark(const bool bEnabled);
+    void setHomeOnUnpark(const bool bEnabled);
+
 protected:
     
 	int             domeCommand(const char *cmd, char *result, int resultMaxLen);
@@ -182,8 +184,12 @@ protected:
     int             m_nHomingTries;
     int             m_nGotoTries;
     int             m_nIsRaining;
-
+    bool            m_bParking;
+    bool            m_bUnParking;
     
+    bool            m_bHomeOnPark;
+    bool            m_bHomeOnUnpark;
+
     double          m_dShutterVolts;
     
 #ifdef PLUGIN_DEBUG

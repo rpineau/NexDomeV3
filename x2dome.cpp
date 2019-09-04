@@ -32,8 +32,12 @@ X2Dome::X2Dome(const char* pszSelection,
 
     if (m_pIniUtil)
     {   
-        m_NexDome.setHomeAz( m_pIniUtil->readDouble(PARENT_KEY, CHILD_KEY_HOME_AZ, 0) );
+        m_NexDome.setParkAz( m_pIniUtil->readDouble(PARENT_KEY, CHILD_KEY_PARK_AZ, 0) );
         m_bHasShutterControl = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_SHUTTER_CONTROL, false);
+        m_bHomeOnPark = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_HOME_ON_PARK, false);
+        m_bHomeOnUnpark = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_HOME_ON_UNPARK, false);
+        m_NexDome.setHomeOnPark(m_bHomeOnPark);
+        m_NexDome.setHomeOnUnpark(m_bHomeOnUnpark);
     }
 }
 
@@ -121,6 +125,7 @@ int X2Dome::execModalSettingsDialog()
     bool bPressedOK = false;
     char szTmpBuf[SERIAL_BUFFER_SIZE];
     double dHomeAz;
+    double dParkAz;
     double dShutterBattery;
     bool nReverseDir;
     int n_nbStepPerRev;
@@ -151,9 +156,26 @@ int X2Dome::execModalSettingsDialog()
         dx->setChecked("hasShutterCtrl",false);
     }
 
+    if(m_bHomeOnPark) {
+        dx->setChecked("homeOnPark",true);
+    }
+    else {
+        dx->setChecked("homeOnPark",false);
+    }
+    
+    if(m_bHomeOnUnpark) {
+        dx->setChecked("homeOnUnpark",true);
+    }
+    else {
+        dx->setChecked("homeOnUnpark",false);
+    }
+
+    dx->setEnabled("parkPosition",true);
+
     if(m_bLinked) {
 		dx->setEnabled("pushButton",false);	 // calibrate
         dx->setEnabled("homePosition",true);
+        dx->setPropertyDouble("homePosition","value", m_NexDome.getHomeAz());
 		dx->setEnabled("needReverse",false);
 		/*
         nErr = m_NexDome.getDefaultDir(nReverseDir);
@@ -222,7 +244,7 @@ int X2Dome::execModalSettingsDialog()
         dx->setEnabled("pushButton",false);
         dx->setPropertyString("rainStatus","text", "--");
     }
-    dx->setPropertyDouble("homePosition","value", m_NexDome.getHomeAz());
+    dx->setPropertyDouble("parkPosition","value", m_NexDome.getParkAz());
 
     m_bHomingDome = false;
     m_nBattRequest = 0;
@@ -236,6 +258,7 @@ int X2Dome::execModalSettingsDialog()
     if (bPressedOK) {
         dx->propertyInt("ticksPerRev", "value", n_nbStepPerRev);
         dx->propertyDouble("homePosition", "value", dHomeAz);
+        dx->propertyDouble("parkPosition", "value", dParkAz);
         dx->propertyInt("rotationSpeed", "value", nRSpeed);
         dx->propertyInt("rotationAcceletation", "value", nRAcc);
 		dx->propertyInt("shutterTicks", "value", n_ShutterSteps);
@@ -243,6 +266,11 @@ int X2Dome::execModalSettingsDialog()
         dx->propertyInt("shutterAcceleration", "value", nSAcc);
         m_bHasShutterControl = dx->isChecked("hasShutterCtrl");
         // nReverseDir = dx->isChecked("needReverse");
+        m_bHomeOnPark = dx->isChecked("homeOnPark");
+        m_bHomeOnUnpark = dx->isChecked("homeOnUnpark");
+        m_NexDome.setHomeOnPark(m_bHomeOnPark);
+        m_NexDome.setHomeOnUnpark(m_bHomeOnUnpark);
+        m_NexDome.setParkAz(dParkAz);
         if(m_bLinked) {
             // m_NexDome.setDefaultDir(!nReverseDir);
             m_NexDome.setHomeAz(dHomeAz);
@@ -257,8 +285,10 @@ int X2Dome::execModalSettingsDialog()
         }
 
         // save the values to persistent storage
-        nErr |= m_pIniUtil->writeDouble(PARENT_KEY, CHILD_KEY_HOME_AZ, dHomeAz);
+        nErr |= m_pIniUtil->writeDouble(PARENT_KEY, CHILD_KEY_PARK_AZ, dParkAz);
         nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_SHUTTER_CONTROL, m_bHasShutterControl);
+        nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_HOME_ON_PARK, m_bHomeOnPark);
+        nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_HOME_ON_UNPARK, m_bHomeOnUnpark);
     }
     return nErr;
 
