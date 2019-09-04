@@ -102,7 +102,7 @@ public:
     double getCurrentEl();
 
     int getCurrentShutterState();
-    int getdShutterVolts(double &dShutterVolts);
+    int getShutterVolts(double &dShutterVolts);
     
     int getDefaultDir(bool &bNormal);
     int setDefaultDir(bool bNormal);
@@ -128,7 +128,8 @@ protected:
     
 	int             domeCommand(const char *cmd, char *result, int resultMaxLen);
     int             readResponse(char *respBuffer, int nBufferLen, int nTimeout = MAX_TIMEOUT);
-
+    int             processAsyncResponses();
+    
     int             getDomeAz(double &dDomeAz);
     int             getDomeEl(double &dDomeEl);
     int             getDomeHomeAz(double &dAz);

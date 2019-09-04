@@ -16,6 +16,8 @@ CNexDomeV3::CNexDomeV3()
     m_bIsConnected = false;
 
     m_nNbStepPerRev = 0;
+    m_nShutterSteps = 0;
+    
     m_dShutterBatteryVolts = 0.0;
     
     m_dHomeAz = 0;
@@ -415,6 +417,130 @@ int CNexDomeV3::readResponse(char *szRespBuffer, int nBufferLen, int nTimeout )
 	return nErr;
 }
 
+int CNexDomeV3::processAsyncResponses()
+{
+    int nErr = PLUGIN_OK;
+    char szResp[SERIAL_BUFFER_SIZE];
+    int nStepPos;
+    int nbByteWaiting = 0;
+    char szTmp[SERIAL_BUFFER_SIZE];
+    std::string sResp;
+    std::string sTmp;
+    int nb_timeout;
+    
+    if(!m_bIsConnected)
+        return NOT_CONNECTED;
+    
+    if(m_bDomeIsMoving)
+        return nErr;
+    
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses]\n", timestamp);
+    fflush(Logfile);
+#endif
+    nb_timeout = 0;
+    do {
+        m_pSerx->bytesWaitingRx(nbByteWaiting);
+        if(nbByteWaiting) {
+            nErr = readResponse(szResp, SERIAL_BUFFER_SIZE, 250);
+            if(nErr && nErr != ERR_DATAOUT)
+                return nErr;
+
+            if(strlen(szResp)) {
+                //cleanup the string
+                sTmp.assign(szResp);
+                sResp = trim(sTmp," \n\r#");
+                strncpy(szResp, sResp.c_str(), SERIAL_BUFFER_SIZE);
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                ltime = time(NULL);
+                timestamp = asctime(localtime(&ltime));
+                timestamp[strlen(timestamp) - 1] = 0;
+                fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] response : '%s'\n", timestamp, szResp);
+                fflush(Logfile);
+#endif
+
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                ltime = time(NULL);
+                timestamp = asctime(localtime(&ltime));
+                timestamp[strlen(timestamp) - 1] = 0;
+                fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses] szResp = '%s'\n", timestamp, szResp);
+                fflush(Logfile);
+#endif
+                switch(szResp[0]) {
+                    case 'P' :
+                        nStepPos = atoi(szResp+1); // Pxxxxx
+                        // convert steps to deg
+                        m_dCurrentAzPosition = (double(nStepPos)/m_nNbStepPerRev) * 360.0;
+                        break;
+                    case ':' :
+                        if(strstr(szResp,":BV")) {
+                            memcpy(szTmp, szResp+3, SERIAL_BUFFER_SIZE);
+                            m_dShutterVolts = float(atoi(szTmp)) * 3.0 * (5.0 / 1023.0);
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                            ltime = time(NULL);
+                            timestamp = asctime(localtime(&ltime));
+                            timestamp[strlen(timestamp) - 1] = 0;
+                            fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] m_dShutterVolts : %3.2f\n", timestamp, m_dShutterVolts);
+                            fflush(Logfile);
+#endif
+                            nb_timeout++;
+                        }
+                        else if(strstr(szResp,":RainStopped")) {
+                            m_nIsRaining = NOT_RAINING;
+                            nb_timeout++;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                            ltime = time(NULL);
+                            timestamp = asctime(localtime(&ltime));
+                            timestamp[strlen(timestamp) - 1] = 0;
+                            fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] NOT_RAINING\n", timestamp);
+                            fflush(Logfile);
+#endif
+                        }
+                        else if(strstr(szResp,":Rain")) {
+                            m_nIsRaining = RAINING;
+                            nb_timeout++;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                            ltime = time(NULL);
+                            timestamp = asctime(localtime(&ltime));
+                            timestamp[strlen(timestamp) - 1] = 0;
+                            fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] RAINING\n", timestamp);
+                            fflush(Logfile);
+#endif
+                        }
+                        else if(strstr(szResp,":left")) {
+                            nb_timeout++;
+                        }
+                        else if(strstr(szResp,":right")) {
+                            nb_timeout++;
+                        }
+                        else if(strstr(szResp,":open")) {
+                            nb_timeout++;
+                        }
+                        else if(strstr(szResp,":close")) {
+                            nb_timeout++;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    } while(nbByteWaiting);
+    
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses] Done\n", timestamp);
+    fflush(Logfile);
+#endif
+    
+    return nErr;
+}
+
 int CNexDomeV3::getDomeAz(double &dDomeAz)
 {
     int nErr = PLUGIN_OK;
@@ -720,13 +846,13 @@ int CNexDomeV3::setShutterSteps(int &nStepPerRev)
     return nErr;
 }
 
-int CNexDomeV3::getdShutterVolts(double &dShutterVolts)
+int CNexDomeV3::getShutterVolts(double &dShutterVolts)
 {
     int nErr = PLUGIN_OK;
     
-    if(!m_bIsConnected)
-        return NOT_CONNECTED;
-
+    if(m_bIsConnected) {
+        nErr = processAsyncResponses();
+    }
     dShutterVolts = m_dShutterVolts;
     return nErr;
 }
@@ -1712,6 +1838,9 @@ int CNexDomeV3::getRainSensorStatus(int &nStatus)
 {
     int nErr = PLUGIN_OK;
 
+    if(m_bIsConnected) {
+        nErr = processAsyncResponses();
+    }
     nStatus = m_nIsRaining;
 
     return nErr;

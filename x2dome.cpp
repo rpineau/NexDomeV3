@@ -211,7 +211,7 @@ int X2Dome::execModalSettingsDialog()
         dx->setPropertyInt("shutterAcceleration","value", nSAcc);
 
         if(m_bHasShutterControl) {
-            m_NexDome.getdShutterVolts(dShutterBattery);
+            m_NexDome.getShutterVolts(dShutterBattery);
             if(dShutterBattery>=0.0f)
                 snprintf(szTmpBuf,16,"%2.2f V",dShutterBattery);
             else
@@ -364,18 +364,12 @@ void X2Dome::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
             if(m_bHasShutterControl && !m_bHomingDome && !m_bCalibratingDome) {
                 // don't ask to often
                 if (!(m_nBattRequest%4)) {
-                    if(m_bHasShutterControl) {
-                        m_NexDome.getdShutterVolts(dShutterBattery);
+                        m_NexDome.getShutterVolts(dShutterBattery);
                         if(dShutterBattery>=0.0f)
                             snprintf(szTmpBuf,16,"%2.2f V",dShutterBattery);
                         else
                             snprintf(szTmpBuf,16,"--");
                         uiex->setPropertyString("shutterBatteryLevel","text", szTmpBuf);
-                    }
-                    else {
-                        snprintf(szTmpBuf,16,"NA");
-                        uiex->setPropertyString("shutterBatteryLevel","text", szTmpBuf);
-                    }
                 }
                 m_nBattRequest++;
                 nErr = m_NexDome.getRainSensorStatus(nRainSensorStatus);
