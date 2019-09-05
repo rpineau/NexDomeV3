@@ -16,8 +16,8 @@ CNexDomeV3::CNexDomeV3()
     m_bIsConnected = false;
 
     m_nNbStepPerRev = 0;
+	m_nMaxStepVal = 0;
     m_nShutterSteps = 0;
-    
     m_dShutterBatteryVolts = 0.0;
     
     m_dHomeAz = 0;
@@ -575,6 +575,8 @@ int CNexDomeV3::getDomeAz(double &dDomeAz)
 #endif
     
     nStepPos = atoi(szResp+3); // PRRxxx
+	if(nStepPos>m_nMaxStepVal)
+		m_nMaxStepVal = nStepPos;
 
     // convert steps to deg
     dDomeAz = (double(nStepPos)/m_nNbStepPerRev) * 360.0;
@@ -796,6 +798,7 @@ int CNexDomeV3::setDomeStepPerRev(int nStepPerRev)
     char szResp[SERIAL_BUFFER_SIZE];
 
     m_nNbStepPerRev = nStepPerRev;
+	m_nMaxStepVal = nStepPerRev;
 
     if(!m_bIsConnected)
         return NOT_CONNECTED;
@@ -889,6 +892,8 @@ bool CNexDomeV3::isDomeMoving()
 				switch(szResp[0]) {
 					case 'P' :
 						nStepPos = atoi(szResp+1); // Pxxxxx
+						if(nStepPos>m_nMaxStepVal)
+							m_nMaxStepVal = nStepPos;
 						// convert steps to deg
 						m_dCurrentAzPosition = (double(nStepPos)/m_nNbStepPerRev) * 360.0;
 						break;
@@ -1264,19 +1269,42 @@ int CNexDomeV3::goHome()
 int CNexDomeV3::calibrate()
 {
     int nErr = PLUGIN_OK;
-    char szResp[SERIAL_BUFFER_SIZE];
-
+	double dTmpAz;
+	bool	bComplete;
+	int 	nTimeOut;
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
+	// move off the home position
+	getDomeAz(dTmpAz);
+	gotoAzimuth(dTmpAz+1);
+	m_nMaxStepVal = 0;
+	setDomeStepPerRev(99999999);	// let's see how big this can be
+	bComplete = false;
+	nTimeOut = 0;
+	do {
+		if(nTimeOut>10) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+			ltime = time(NULL);
+			timestamp = asctime(localtime(&ltime));
+			timestamp[strlen(timestamp) - 1] = 0;
+			fprintf(Logfile, "[%s] [CNexDomeV3::calibrate] GoTo ERROR = %d\n", timestamp, nErr);
+			fflush(Logfile);
+#endif
+			return ERR_CMDFAILED;
+		}
+		isGoToComplete(bComplete);
+		nTimeOut++;
+		m_pSleeper->sleep(1000);
+	} while(!bComplete);
 
-    // nErr = domeCommand("c#", szResp, 'c', SERIAL_BUFFER_SIZE);
+	nErr = goHome();
     if(nErr) {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CNexDomeV3::calibrate] ERROR = %d\n", timestamp, nErr);
+        fprintf(Logfile, "[%s] [CNexDomeV3::calibrate] goHome ERROR = %d\n", timestamp, nErr);
         fflush(Logfile);
 #endif
         return nErr;
@@ -1614,6 +1642,8 @@ int CNexDomeV3::isCalibratingComplete(bool &bComplete)
         return nErr;
     }
 
+	setDomeStepPerRev(m_nMaxStepVal);
+	
     nErr = getDomeAz(dDomeAz);
 
     if (ceil(m_dHomeAz) != ceil(dDomeAz)) {

@@ -24,8 +24,7 @@ X2Dome::X2Dome(const char* pszSelection,
 	m_bLinked = false;
     m_bHomingDome = false;
     m_bCalibratingDome = false;
-    m_nBattRequest = 0;
-    
+
     m_NexDome.setSerxPointer(pSerX);
     m_NexDome.setSleeprPinter(pSleeper);
     m_NexDome.setLogger(pLogger);
@@ -247,8 +246,6 @@ int X2Dome::execModalSettingsDialog()
     dx->setPropertyDouble("parkPosition","value", m_NexDome.getParkAz());
 
     m_bHomingDome = false;
-    m_nBattRequest = 0;
-    
 
     //Display the user interface
     if ((nErr = ui->exec(bPressedOK)))
@@ -361,25 +358,21 @@ void X2Dome::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
                 uiex->setPropertyInt("ticksPerRev","value", m_NexDome.getNbTicksPerRev());
 			}
             
-            if(m_bHasShutterControl && !m_bHomingDome && !m_bCalibratingDome) {
-                // don't ask to often
-                if (!(m_nBattRequest%4)) {
-                        m_NexDome.getShutterVolts(dShutterBattery);
-                        if(dShutterBattery>=0.0f)
-                            snprintf(szTmpBuf,16,"%2.2f V",dShutterBattery);
-                        else
-                            snprintf(szTmpBuf,16,"--");
-                        uiex->setPropertyString("shutterBatteryLevel","text", szTmpBuf);
-                }
-                m_nBattRequest++;
-                nErr = m_NexDome.getRainSensorStatus(nRainSensorStatus);
-                if(nErr)
-                    uiex->setPropertyString("rainStatus","text", "--");
-                else {
-                    snprintf(szTmpBuf, 16, nRainSensorStatus==NOT_RAINING ? "Not raining" : "Raining");
-                    uiex->setPropertyString("rainStatus","text", szTmpBuf);
-                }
-            }
+            if(m_bHasShutterControl) {
+				m_NexDome.getShutterVolts(dShutterBattery);
+				if(dShutterBattery>=0.0f)
+					snprintf(szTmpBuf,16,"%2.2f V",dShutterBattery);
+				else
+					snprintf(szTmpBuf,16,"--");
+				uiex->setPropertyString("shutterBatteryLevel","text", szTmpBuf);
+			}
+			nErr = m_NexDome.getRainSensorStatus(nRainSensorStatus);
+			if(nErr)
+				uiex->setPropertyString("rainStatus","text", "--");
+			else {
+				snprintf(szTmpBuf, 16, nRainSensorStatus==NOT_RAINING ? "Not raining" : "Raining");
+				uiex->setPropertyString("rainStatus","text", szTmpBuf);
+			}
         }
     }
 

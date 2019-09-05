@@ -164,6 +164,7 @@ protected:
 	bool			m_bDomeIsMoving;
 
     int             m_nNbStepPerRev;
+	int				m_nMaxStepVal;
     double          m_dShutterBatteryVolts;
     double          m_dHomeAz;
     double          m_dParkAz;
@@ -192,7 +193,7 @@ protected:
     bool            m_bHomeOnUnpark;
 
     double          m_dShutterVolts;
-    
+
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
     // timestamp for logs

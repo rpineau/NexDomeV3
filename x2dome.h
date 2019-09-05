@@ -167,6 +167,5 @@ private:
     bool        m_bHomingDome;
     bool        m_bCalibratingDome;
     char        m_szLogBuffer[LOG_BUFFER_SIZE];
-    int         m_nBattRequest;
 	int			m_nSavedTicksPerRev;
 };
