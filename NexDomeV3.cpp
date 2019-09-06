@@ -1279,7 +1279,7 @@ int CNexDomeV3::calibrate()
 	getDomeAz(dTmpAz);
 	gotoAzimuth(dTmpAz+1);
 	m_nMaxStepVal = 0;
-	setDomeStepPerRev(99999999);	// let's see how big this can be
+	setDomeStepPerRev(99999999);	// set it to a very big value, bigger that than trip the controller.
 	bComplete = false;
 	nTimeOut = 0;
 	do {
@@ -1630,7 +1630,7 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
 int CNexDomeV3::isCalibratingComplete(bool &bComplete)
 {
     int nErr = PLUGIN_OK;
-    double dDomeAz = 0;
+	double dDomeAz;
 
     if(!m_bIsConnected)
         return NOT_CONNECTED;
@@ -1642,16 +1642,13 @@ int CNexDomeV3::isCalibratingComplete(bool &bComplete)
         return nErr;
     }
 
-	setDomeStepPerRev(m_nMaxStepVal);
-	
-    nErr = getDomeAz(dDomeAz);
-
-    if (ceil(m_dHomeAz) != ceil(dDomeAz)) {
+	setDomeStepPerRev(m_nMaxStepVal);	// set new step per rev value
+    nErr = setHomeAz(m_dHomeAz);	// reset the home step position.
+	getDomeAz(dDomeAz);
+	if (ceil(m_dHomeAz) != ceil(dDomeAz)) {
         // We need to resync the current position to the home position.
         m_dCurrentAzPosition = m_dHomeAz;
         syncDome(m_dCurrentAzPosition,m_dCurrentElPosition);
-        m_bHomed = true;
-        bComplete = true;
     }
 
     nErr = getDomeStepPerRev(m_nNbStepPerRev);
