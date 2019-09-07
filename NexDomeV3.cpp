@@ -422,7 +422,7 @@ int CNexDomeV3::processAsyncResponses()
     int nErr = PLUGIN_OK;
     char szResp[SERIAL_BUFFER_SIZE];
     int nStepPos;
-    int nbByteWaiting = 0;
+    int nbBytesWaiting = 0;
     char szTmp[SERIAL_BUFFER_SIZE];
     std::string sResp;
     std::string sTmp;
@@ -443,8 +443,8 @@ int CNexDomeV3::processAsyncResponses()
 #endif
     nb_timeout = 0;
     do {
-        m_pSerx->bytesWaitingRx(nbByteWaiting);
-        if(nbByteWaiting) {
+        m_pSerx->bytesWaitingRx(nbBytesWaiting);
+        if(nbBytesWaiting) {
             nErr = readResponse(szResp, SERIAL_BUFFER_SIZE, 250);
             if(nErr && nErr != ERR_DATAOUT)
                 return nErr;
@@ -528,7 +528,7 @@ int CNexDomeV3::processAsyncResponses()
                 }
             }
         }
-    } while(nbByteWaiting);
+    } while(nbBytesWaiting);
     
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -866,7 +866,7 @@ bool CNexDomeV3::isDomeMoving()
     int nErr = PLUGIN_OK;
     char szResp[SERIAL_BUFFER_SIZE];
 	int nStepPos;
-	int nbByteWaiting = 0;
+	int nbBytesWaiting = 0;
 
     if(!m_bIsConnected)
         return NOT_CONNECTED;
@@ -882,8 +882,8 @@ bool CNexDomeV3::isDomeMoving()
 	fflush(Logfile);
 #endif
 	do {
-		m_pSerx->bytesWaitingRx(nbByteWaiting);
-		if(nbByteWaiting) {
+		m_pSerx->bytesWaitingRx(nbBytesWaiting);
+		if(nbBytesWaiting) {
 			nErr = readResponse(szResp, SERIAL_BUFFER_SIZE, 250);
 			if(nErr && nErr != ERR_DATAOUT)
 				return m_bDomeIsMoving;
@@ -908,7 +908,7 @@ bool CNexDomeV3::isDomeMoving()
 				}
 			}
 		}
-	} while(nbByteWaiting);
+	} while(nbBytesWaiting);
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
 	ltime = time(NULL);
@@ -1636,13 +1636,17 @@ int CNexDomeV3::isCalibratingComplete(bool &bComplete)
         return NOT_CONNECTED;
 
     if(isDomeMoving()) {
-        // getDomeAz(dDomeAz);
         m_bHomed = false;
         bComplete = false;
         return nErr;
     }
 
-	setDomeStepPerRev(m_nMaxStepVal);	// set new step per rev value
+	if(!isDomeAtHome()){
+		// we're not moving and we're not at the home position !!!
+		return ERR_CMDFAILED;
+	}
+
+	setDomeStepPerRev(m_nMaxStepVal+1);	// set new step per rev value
     nErr = setHomeAz(m_dHomeAz);	// reset the home step position.
 	getDomeAz(dDomeAz);
 	if (ceil(m_dHomeAz) != ceil(dDomeAz)) {

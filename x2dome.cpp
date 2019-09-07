@@ -172,18 +172,10 @@ int X2Dome::execModalSettingsDialog()
     dx->setEnabled("parkPosition",true);
 
     if(m_bLinked) {
-		dx->setEnabled("pushButton",false);	 // calibrate
+		dx->setEnabled("pushButton",true);	 // calibrate
         dx->setEnabled("homePosition",true);
         dx->setPropertyDouble("homePosition","value", m_NexDome.getHomeAz());
 		dx->setEnabled("needReverse",false);
-		/*
-        nErr = m_NexDome.getDefaultDir(nReverseDir);
-        if(nReverseDir)
-            dx->setChecked("needReverse",false);
-        else
-            dx->setChecked("needReverse",true);
-
-		 */
         // read values from dome controller
         dx->setEnabled("ticksPerRev",true);
         n_nbStepPerRev = m_NexDome.getNbTicksPerRev();
