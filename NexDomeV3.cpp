@@ -834,8 +834,7 @@ int CNexDomeV3::getDomeStepPerRev(int &nStepPerRev)
             return ERR_CMDFAILED;
     } while(!strstr(szResp,"RRR"));
 
-    // need parsing RRR99498
-    
+    // RRR99498
     nStepPerRev = atoi(szResp+3);
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -890,7 +889,6 @@ int CNexDomeV3::getShutterSteps(int &nStepPerRev)
             return ERR_CMDFAILED;
     } while(!strstr(szResp,"RRS"));
 
-    // need parsing
     nStepPerRev = atoi(szResp+3);
     m_nShutterSteps = nStepPerRev;
     return nErr;
@@ -950,7 +948,6 @@ int CNexDomeV3::getRotatorDeadZone(int &nDeadZoneSteps)
             return ERR_CMDFAILED;
     } while(!strstr(szResp,"DRR"));
     
-    // need parsing
     nDeadZoneSteps = atoi(szResp+3);
     return nErr;
 }
@@ -1390,7 +1387,7 @@ int CNexDomeV3::goHome()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDomeV3::goHome \n", timestamp);
+    fprintf(Logfile, "[%s] [CNexDomeV3::goHome]\n", timestamp);
     fflush(Logfile);
 #endif
 
@@ -1401,7 +1398,7 @@ int CNexDomeV3::goHome()
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] CNexDomeV3::goHome ERROR = %d\n", timestamp, nErr);
+        fprintf(Logfile, "[%s] [CNexDomeV3::goHome] ERROR = %d\n", timestamp, nErr);
         fflush(Logfile);
 #endif
         return nErr;
@@ -1437,7 +1434,7 @@ int CNexDomeV3::isGoToComplete(bool &bComplete)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDomeV3::isGoToComplete DomeAz = %3.2f\n", timestamp, dDomeAz);
+    fprintf(Logfile, "[%s] [CNexDomeV3::isGoToComplete] DomeAz = %3.2f\n", timestamp, dDomeAz);
     fflush(Logfile);
 #endif
 
@@ -1452,7 +1449,7 @@ int CNexDomeV3::isGoToComplete(bool &bComplete)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] CNexDomeV3::isGoToComplete ***** ERROR **** domeAz = %3.2f, m_dGotoAz = %3.2f\n", timestamp, dDomeAz, m_dGotoAz);
+        fprintf(Logfile, "[%s] [CNexDomeV3::isGoToComplete] ***** ERROR **** domeAz = %3.2f, m_dGotoAz = %3.2f\n", timestamp, dDomeAz, m_dGotoAz);
         fflush(Logfile);
 #endif
         if(m_nGotoTries == 0) {
@@ -1477,6 +1474,14 @@ int CNexDomeV3::isOpenComplete(bool &bComplete)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CNexDomeV3::isOpenComplete]\n", timestamp);
+    fflush(Logfile);
+#endif
+
     if(isDomeMoving()) {
         bComplete = false;
         return nErr;
@@ -1500,7 +1505,7 @@ int CNexDomeV3::isOpenComplete(bool &bComplete)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDomeV3::isOpenComplete bComplete = %s\n", timestamp, bComplete?"True":"False");
+    fprintf(Logfile, "[%s] [CNexDomeV3::isOpenComplete] bComplete = %s\n", timestamp, bComplete?"True":"False");
     fflush(Logfile);
 #endif
 
@@ -1515,6 +1520,14 @@ int CNexDomeV3::isCloseComplete(bool &bComplete)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
     
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CNexDomeV3::isCloseComplete]\n", timestamp);
+    fflush(Logfile);
+#endif
+
     if(isDomeMoving()) {
         bComplete = false;
         return nErr;
@@ -1558,8 +1571,8 @@ int CNexDomeV3::isParkComplete(bool &bComplete)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDomeV3::isParkComplete m_bParking = %s\n", timestamp, m_bParking?"True":"False");
-    fprintf(Logfile, "[%s] CNexDomeV3::isParkComplete bComplete = %s\n", timestamp, bComplete?"True":"False");
+    fprintf(Logfile, "[%s] [CNexDomeV3::isParkComplete] m_bParking = %s\n", timestamp, m_bParking?"True":"False");
+    fprintf(Logfile, "[%s] [CNexDomeV3::isParkComplete] bComplete = %s\n", timestamp, bComplete?"True":"False");
     fflush(Logfile);
 #endif
     
@@ -1577,7 +1590,7 @@ int CNexDomeV3::isParkComplete(bool &bComplete)
             ltime = time(NULL);
             timestamp = asctime(localtime(&ltime));
             timestamp[strlen(timestamp) - 1] = 0;
-            fprintf(Logfile, "[%s] CNexDome::isParkComplete found home, now parking\n", timestamp);
+            fprintf(Logfile, "[%s] [CNexDome::isParkComplete] found home, now parking\n", timestamp);
             fflush(Logfile);
 #endif
             m_bParking = false;
@@ -1605,7 +1618,7 @@ int CNexDomeV3::isParkComplete(bool &bComplete)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDome::isParkComplete bComplete = %s\n", timestamp, bComplete?"True":"False");
+    fprintf(Logfile, "[%s] [CNexDome::isParkComplete] bComplete = %s\n", timestamp, bComplete?"True":"False");
     fflush(Logfile);
 #endif
     
@@ -1627,7 +1640,7 @@ int CNexDomeV3::isUnparkComplete(bool &bComplete)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete UNPARKED \n", timestamp);
+        fprintf(Logfile, "[%s] [CNexDomeV3::isUnparkComplete] UNPARKED \n", timestamp);
         fflush(Logfile);
 #endif
     }
@@ -1636,7 +1649,7 @@ int CNexDomeV3::isUnparkComplete(bool &bComplete)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete unparking.. checking if we're home \n", timestamp);
+        fprintf(Logfile, "[%s] [CNexDomeV3::isUnparkComplete] unparking.. checking if we're home \n", timestamp);
         fflush(Logfile);
 #endif
         nErr = isFindHomeComplete(bComplete);
@@ -1654,8 +1667,8 @@ int CNexDomeV3::isUnparkComplete(bool &bComplete)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete m_bParked = %s\n", timestamp, m_bParked?"True":"False");
-    fprintf(Logfile, "[%s] CNexDomeV3::isUnparkComplete bComplete = %s\n", timestamp, bComplete?"True":"False");
+    fprintf(Logfile, "[%s] [CNexDomeV3::isUnparkComplete] m_bParked = %s\n", timestamp, m_bParked?"True":"False");
+    fprintf(Logfile, "[%s] [CNexDomeV3::isUnparkComplete] bComplete = %s\n", timestamp, bComplete?"True":"False");
     fflush(Logfile);
 #endif
     
@@ -1673,7 +1686,7 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDomeV3::isFindHomeComplete\n", timestamp);
+    fprintf(Logfile, "[%s] [CNexDomeV3::isFindHomeComplete]\n", timestamp);
     fflush(Logfile);
 #endif
 
@@ -1684,7 +1697,7 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] CNexDomeV3::isFindHomeComplete still moving\n", timestamp);
+        fprintf(Logfile, "[%s] [CNexDomeV3::isFindHomeComplete] still moving\n", timestamp);
         fflush(Logfile);
 #endif
         return nErr;
@@ -1701,7 +1714,7 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] CNexDomeV3::isFindHomeComplete At Home\n", timestamp);
+        fprintf(Logfile, "[%s] [CNexDomeV3::isFindHomeComplete] At Home\n", timestamp);
         fflush(Logfile);
 #endif
     }
@@ -1872,55 +1885,6 @@ int CNexDomeV3::getCurrentShutterState()
 }
 
 
-int CNexDomeV3::getDefaultDir(bool &bNormal)
-{
-    int nErr = PLUGIN_OK;
-    char szResp[SERIAL_BUFFER_SIZE];
-
-    bNormal = true;
-    nErr = domeCommand("y#", szResp, SERIAL_BUFFER_SIZE);
-    if(nErr) {
-        return nErr;
-    }
-
-    bNormal = atoi(szResp) ? false:true;
-#ifdef PLUGIN_DEBUG
-    ltime = time(NULL);
-    timestamp = asctime(localtime(&ltime));
-    timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::getDefaultDir] bNormal =  %s\n", timestamp, bNormal?"True":"False");
-    fflush(Logfile);
-#endif
-
-
-    return nErr;
-}
-
-int CNexDomeV3::setDefaultDir(bool bNormal)
-{
-    int nErr = PLUGIN_OK;
-    char szBuf[SERIAL_BUFFER_SIZE];
-    char szResp[SERIAL_BUFFER_SIZE];
-
-    if(!m_bIsConnected)
-        return NOT_CONNECTED;
-
-    snprintf(szBuf, SERIAL_BUFFER_SIZE, "y %1d#", bNormal?0:1);
-
-#ifdef PLUGIN_DEBUG
-    ltime = time(NULL);
-    timestamp = asctime(localtime(&ltime));
-    timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::setDefaultDir] bNormal =  %s\n", timestamp, bNormal?"True":"False");
-    fprintf(Logfile, "[%s] [CNexDomeV3::setDefaultDir] szBuf =  %s\n", timestamp, szBuf);
-    fflush(Logfile);
-#endif
-
-    nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    return nErr;
-
-}
-
 int CNexDomeV3::getRainSensorStatus(int &nStatus)
 {
     int nErr = PLUGIN_OK;
@@ -2001,7 +1965,6 @@ int CNexDomeV3::getRotationAcceleration(int &nAcceleration)
             return ERR_CMDFAILED;
     } while(!strstr(szResp,"ARR"));
 
-    // need parsing
     nAcceleration = atoi(szResp+3);
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);
@@ -2053,7 +2016,6 @@ int CNexDomeV3::getShutterSpeed(int &nSpeed)
             return ERR_CMDFAILED;
     } while(!strstr(szResp,"VRS"));
 
-    // need parsing
     nSpeed = atoi(szResp+3);
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);
@@ -2101,7 +2063,6 @@ int CNexDomeV3::getShutterAcceleration(int &nAcceleration)
             return ERR_CMDFAILED;
     } while(!strstr(szResp,"ARS"));
 
-    // need parsing
     nAcceleration = atoi(szResp+3);
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);

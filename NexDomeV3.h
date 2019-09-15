@@ -101,9 +101,6 @@ public:
     int getCurrentShutterState();
     int getShutterVolts(double &dShutterVolts);
     
-    int getDefaultDir(bool &bNormal);
-    int setDefaultDir(bool bNormal);
-
     int getRainSensorStatus(int &nStatus);
 
     int getRotationSpeed(int &nSpeed);
