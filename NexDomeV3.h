@@ -57,7 +57,6 @@ public:
 
     void        setSerxPointer(SerXInterface *p) { m_pSerx = p; }
     void        setSleeprPinter(SleeperInterface *p) {m_pSleeper = p; }
-    void        setLogger(LoggerInterface *pLogger) { m_pLogger = pLogger; };
 
     // Dome commands
     int syncDome(double dAz, double dEl);
@@ -69,7 +68,6 @@ public:
     int getFirmwareVersion(char *szVersion, int nStrMaxLen);
     int getFirmwareVersion(float &fVersion);
     int goHome();
-    int calibrate();
 
     // command complete functions
     int isGoToComplete(bool &bComplete);
@@ -78,7 +76,6 @@ public:
     int isParkComplete(bool &bComplete);
     int isUnparkComplete(bool &bComplete);
     int isFindHomeComplete(bool &bComplete);
-    int isCalibratingComplete(bool &bComplete);
 
     int abortCurrentCommand();
 
@@ -120,7 +117,16 @@ public:
 
     int getShutterAcceleration(int &nAcceleration);
     int setShutterAcceleration(int nAcceleration);
+    
+    int getRotatorStepPos(int &nPos);
 
+    int getRotatorDeadZone(int &nDeadZoneSteps);
+    int setRotatorDeadZone(int &nDeadZoneSteps);
+
+    int saveParamToEEProm();
+    int loadParamFromEEProm();
+    int resetToFactoryDefault();
+    
     void setHomeOnPark(const bool bEnabled);
     void setHomeOnUnpark(const bool bEnabled);
 
@@ -143,6 +149,8 @@ protected:
 
     bool            isDomeMoving();
     bool            isDomeAtHome();
+    
+    
     int             parseFields(const char *pszResp, std::vector<std::string> &svFields, char cSeparator);
 
     std::string&    trim(std::string &str, const std::string &filter );
@@ -153,18 +161,15 @@ protected:
     
     SerXInterface   *m_pSerx;
     SleeperInterface *m_pSleeper;
-    LoggerInterface *m_pLogger;
-    bool            m_bDebugLog;
-    
+
+    bool            m_bShutterOnline;
     bool            m_bIsConnected;
     bool            m_bHomed;
     bool            m_bParked;
     bool            m_bShutterOpened;
-    bool            m_bCalibrating;
 	bool			m_bDomeIsMoving;
 
     int             m_nNbStepPerRev;
-	int				m_nMaxStepVal;
     double          m_dShutterBatteryVolts;
     double          m_dHomeAz;
     double          m_dParkAz;
@@ -173,7 +178,10 @@ protected:
 	int				m_nCurrentShutterCmd;
 
     double          m_dCurrentAzPosition;
+    int             m_nCurrentRotatorPos;
+    
     double          m_dCurrentElPosition;
+    int             m_nCurrentShutterPos;
 
     double          m_dGotoAz;
 
