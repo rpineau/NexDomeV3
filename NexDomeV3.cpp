@@ -318,7 +318,8 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
 #endif
                 if(strstr(szResp, "Online"))
                     m_bShutterOnline = true;
-                
+                else
+                    m_bShutterOnline = false;
                 nb_timeout++;
                 break;
 
@@ -422,10 +423,7 @@ int CNexDomeV3::readResponse(char *szRespBuffer, int nBufferLen, int nTimeout )
 			fprintf(Logfile, "[%s] CNexDomeV3::readResponse Timeout while waiting for response from controller\n", timestamp);
 			fflush(Logfile);
 #endif
-			if(!ulTotalBytesRead)
-				nErr = PLUGIN_BAD_CMD_RESPONSE;
-			else
-				nErr = ERR_DATAOUT;
+            nErr = ERR_DATAOUT;
 			break;
 		}
 		ulTotalBytesRead += ulBytesRead;
