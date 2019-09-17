@@ -67,7 +67,8 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CNexDomeV3 Constructor Called.\n", timestamp);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_09_16_1845.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
 
@@ -1067,7 +1068,7 @@ bool CNexDomeV3::isDomeAtHome()
         }
         nTimeout++;
         if(nTimeout>3)
-            return ERR_CMDFAILED;
+            return false;
     } while(!strstr(szResp,"SER"));
 
     // need to parse :SER,0,0,99498,0,300#
@@ -1351,7 +1352,7 @@ int CNexDomeV3::getFirmwareVersion(char *szVersion, int nStrMaxLen)
     return nErr;
 }
 
-int CNexDomeV3::getFirmwareVersion(float &fVersion)
+int CNexDomeV3::getFirmwareVersion(double &fVersion)
 {
     int nErr = PLUGIN_OK;
 
@@ -1819,7 +1820,7 @@ int CNexDomeV3::setHomeAz(double dAz)
     
     if(!m_bIsConnected)
         return NOT_CONNECTED;
-    nTmp = (dAz/360)*m_nNbStepPerRev;
+    nTmp = int(dAz/360.0)*m_nNbStepPerRev;
     
     snprintf(szBuf, SERIAL_BUFFER_SIZE, "@HWR,%d\r\n", nTmp);
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);

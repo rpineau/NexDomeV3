@@ -31,6 +31,8 @@
 #include "../../licensedinterfaces/sleeperinterface.h"
 #include "../../licensedinterfaces/loggerinterface.h"
 
+#define DRIVER_VERSION      1.00
+
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
 #define PLUGIN_LOG_BUFFER_SIZE 256
@@ -66,7 +68,7 @@ public:
     int openShutter();
     int closeShutter();
     int getFirmwareVersion(char *szVersion, int nStrMaxLen);
-    int getFirmwareVersion(float &fVersion);
+    int getFirmwareVersion(double &fVersion);
     int goHome();
 
     // command complete functions
@@ -182,7 +184,7 @@ protected:
 
     double          m_dGotoAz;
 
-    float           m_fVersion;
+    double          m_fVersion;
 
     char            m_szFirmwareVersion[SERIAL_BUFFER_SIZE];
     int             m_nShutterState;
