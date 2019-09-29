@@ -1,8 +1,8 @@
 //
-//  nexdome.cpp
-//  NexDome X2 plugin
+//  NexDomeV3.cpp
 //
-//  Created by Rodolphe Pineau on 6/11/2016.
+//  Created by Rodolphe Pineau on 8/11/2019.
+//  NexDome X2 plugin for V3 firmware
 
 
 #include "NexDomeV3.h"
@@ -10,11 +10,10 @@
 CNexDomeV3::CNexDomeV3()
 {
     // set some sane values
-    m_bShutterOnline = false;
-    
     m_pSerx = NULL;
     m_bIsConnected = false;
-
+    m_bShutterPresent = false;
+    
     m_nNbStepPerRev = 0;
     m_nShutterSteps = 0;
     m_dShutterBatteryVolts = 0.0;
@@ -67,7 +66,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_09_16_1845.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_09_28_1745.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -156,7 +155,8 @@ int CNexDomeV3::Connect(const char *pszPort)
     }
 
     nErr = getDomeStepPerRev(m_nNbStepPerRev);
-    nErr = getShutterSteps(m_nShutterSteps);
+    if(m_bShutterPresent)
+        nErr = getShutterSteps(m_nShutterSteps);
     
     nErr = getDomeHomeAz(m_dHomeAz);
     if(nErr) {
@@ -317,10 +317,12 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
                 fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] XBee status : '%s'\n", timestamp, szResp);
                 fflush(Logfile);
 #endif
-                if(strstr(szResp, "Online"))
-                    m_bShutterOnline = true;
-                else
-                    m_bShutterOnline = false;
+                if(strstr(szResp, "Online")) {
+                    m_bShutterPresent = true;
+                }
+                else {
+                    m_bShutterPresent = false;
+                }
                 nb_timeout++;
                 break;
 
@@ -476,7 +478,7 @@ int CNexDomeV3::processAsyncResponses()
                 ltime = time(NULL);
                 timestamp = asctime(localtime(&ltime));
                 timestamp[strlen(timestamp) - 1] = 0;
-                fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] response : '%s'\n", timestamp, szResp);
+                fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses] response : '%s'\n", timestamp, szResp);
                 fflush(Logfile);
 #endif
 
@@ -496,7 +498,24 @@ int CNexDomeV3::processAsyncResponses()
                     case 'S' :
                         m_nCurrentShutterPos = atoi(szResp+1); // Sxxxxx
                         // convert steps to deg
-                        m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+                        if(m_nShutterSteps)
+                            m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+                        break;
+                    case 'X' :
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                        ltime = time(NULL);
+                        timestamp = asctime(localtime(&ltime));
+                        timestamp[strlen(timestamp) - 1] = 0;
+                        fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses] XBee status : '%s'\n", timestamp, szResp);
+                        fflush(Logfile);
+#endif
+                        if(strstr(szResp, "Online")) {
+                            m_bShutterPresent = true;
+                        }
+                        else {
+                            m_bShutterPresent = false;
+                        }
+                        nb_timeout++;
                         break;
                     case ':' :
                         if(strstr(szResp,":BV")) {
@@ -640,6 +659,10 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
 		return nErr;
 	}
 
+    if(!m_bShutterPresent) {
+        dDomeEl = m_dCurrentElPosition;
+        return nErr;
+    }
     nTimeout = 0;
     do {
         nErr = domeCommand("@PRS\r\n", szResp, SERIAL_BUFFER_SIZE); // might implement latter
@@ -741,6 +764,12 @@ int CNexDomeV3::getShutterState(int &nState)
 		nState = m_nShutterState;
 		return nErr;
 	}
+
+    if(!m_bShutterPresent) {
+        nState = IDLE;
+        return nErr;
+    }
+        
     nTimeout = 0;
     do {
         nErr = domeCommand("@SRS\r\n", szResp, SERIAL_BUFFER_SIZE);
@@ -862,6 +891,7 @@ int CNexDomeV3::setDomeStepPerRev(int nStepPerRev)
     return nErr;
 }
 
+
 int CNexDomeV3::getShutterSteps(int &nStepPerRev)
 {
     int nErr = PLUGIN_OK;
@@ -870,6 +900,12 @@ int CNexDomeV3::getShutterSteps(int &nStepPerRev)
     
     if(!m_bIsConnected)
         return NOT_CONNECTED;
+
+    if(!m_bShutterPresent) {
+        nStepPerRev = 0;
+        return nErr;
+    }
+
     nTimeout = 0;
     do {
         nErr = domeCommand("@RRS\r\n", szResp, SERIAL_BUFFER_SIZE);
@@ -912,7 +948,12 @@ int CNexDomeV3::setShutterSteps(int &nStepPerRev)
 int CNexDomeV3::getShutterVolts(double &dShutterVolts)
 {
     int nErr = PLUGIN_OK;
-    
+
+    if(!m_bShutterPresent) {
+        dShutterVolts = 0;
+        return nErr;
+    }
+
     if(m_bIsConnected) {
         nErr = processAsyncResponses();
     }
@@ -1013,7 +1054,8 @@ bool CNexDomeV3::isDomeMoving()
 						break;
                     case 'S' :
                         m_nCurrentShutterPos = atoi(szResp+1);
-                        m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+                        if(m_nShutterSteps)
+                            m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
                         break;
 					case ':' :
                         // :SER or:SES is sent at the end of the move-> parse :SER,0,0,55080,0,300#
@@ -1481,6 +1523,11 @@ int CNexDomeV3::isOpenComplete(bool &bComplete)
     fflush(Logfile);
 #endif
 
+    if(!m_bShutterPresent) {
+        bComplete = true;
+        return nErr;
+    }
+
     if(isDomeMoving()) {
         bComplete = false;
         return nErr;
@@ -1526,6 +1573,11 @@ int CNexDomeV3::isCloseComplete(bool &bComplete)
     fprintf(Logfile, "[%s] [CNexDomeV3::isCloseComplete]\n", timestamp);
     fflush(Logfile);
 #endif
+
+    if(!m_bShutterPresent) {
+        bComplete = true;
+        return nErr;
+    }
 
     if(isDomeMoving()) {
         bComplete = false;
@@ -1838,6 +1890,13 @@ int CNexDomeV3::setParkAz(double dAz)
     return PLUGIN_OK;
 }
 
+void CNexDomeV3::setShutterPresent(bool bPresent)
+{
+    
+    m_bShutterPresent = bPresent;
+    
+}
+
 int CNexDomeV3::getShutterStepsRange()
 {
 	if(m_bIsConnected)
@@ -1853,10 +1912,6 @@ int CNexDomeV3::setShutterStepsRange(int nSteps)
 		nErr = setShutterSteps(nSteps);
 	return nErr;
 }
-
-
-
-
 
 double CNexDomeV3::getCurrentAz()
 {
@@ -2000,6 +2055,10 @@ int CNexDomeV3::getShutterSpeed(int &nSpeed)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
+    if(!m_bShutterPresent) {
+        nSpeed = 0;
+        return nErr;
+    }
     nTimeout = 0;
     do {
         nErr = domeCommand("@VRS\r\n", szResp, SERIAL_BUFFER_SIZE);
@@ -2033,6 +2092,10 @@ int CNexDomeV3::setShutterSpeed(int nSpeed)
     char szBuf[SERIAL_BUFFER_SIZE];
     char szResp[SERIAL_BUFFER_SIZE];
 
+    if(!m_bShutterPresent) {
+        return nErr;
+    }
+
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
@@ -2050,6 +2113,11 @@ int CNexDomeV3::getShutterAcceleration(int &nAcceleration)
 
     if(!m_bIsConnected)
         return NOT_CONNECTED;
+
+    if(!m_bShutterPresent) {
+        nAcceleration = 0;
+        return nErr;
+    }
 
     nTimeout = 0;
     do {
@@ -2103,7 +2171,8 @@ int CNexDomeV3::loadParamFromEEProm()
         return NOT_CONNECTED;
     
     nErr = domeCommand("@ZRR\r\n", szResp, SERIAL_BUFFER_SIZE);
-    nErr = domeCommand("@ZRS\r\n", szResp, SERIAL_BUFFER_SIZE);
+    if(m_bShutterPresent)
+        nErr = domeCommand("@ZRS\r\n", szResp, SERIAL_BUFFER_SIZE);
     return nErr;
     
 }
@@ -2117,7 +2186,8 @@ int CNexDomeV3::resetToFactoryDefault()
         return NOT_CONNECTED;
     
     nErr = domeCommand("@ZDR\r\n", szResp, SERIAL_BUFFER_SIZE);
-    nErr = domeCommand("@ZDS\r\n", szResp, SERIAL_BUFFER_SIZE);
+    if(m_bShutterPresent)
+        nErr = domeCommand("@ZDS\r\n", szResp, SERIAL_BUFFER_SIZE);
     return nErr;
 }
 
@@ -2130,7 +2200,8 @@ int CNexDomeV3::saveParamToEEProm()
         return NOT_CONNECTED;
     
     nErr = domeCommand("@ZWR\r\n", szResp, SERIAL_BUFFER_SIZE);
-    nErr = domeCommand("@ZWS\r\n", szResp, SERIAL_BUFFER_SIZE);
+    if(m_bShutterPresent)
+        nErr = domeCommand("@ZWS\r\n", szResp, SERIAL_BUFFER_SIZE);
     return nErr;
 
 }

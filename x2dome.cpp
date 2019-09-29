@@ -34,6 +34,7 @@ X2Dome::X2Dome(const char* pszSelection,
         m_bHomeOnUnpark = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_HOME_ON_UNPARK, false);
         m_NexDome.setHomeOnPark(m_bHomeOnPark);
         m_NexDome.setHomeOnUnpark(m_bHomeOnUnpark);
+        m_NexDome.setShutterPresent(m_bHasShutterControl);
     }
 }
 

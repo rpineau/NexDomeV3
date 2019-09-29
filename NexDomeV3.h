@@ -1,9 +1,8 @@
 //
-//  nexdome.h
-//  NexDome
+//  NexDomeV3.h
 //
-//  Created by Rodolphe Pineau on 6/11/2016.
-//  NexDome X2 plugin
+//  Created by Rodolphe Pineau on 8/11/2019.
+//  NexDome X2 plugin for V3 firmware
 
 #ifndef __NEXDOME__
 #define __NEXDOME__
@@ -31,7 +30,7 @@
 #include "../../licensedinterfaces/sleeperinterface.h"
 #include "../../licensedinterfaces/loggerinterface.h"
 
-#define DRIVER_VERSION      1.00
+#define DRIVER_VERSION      1.01
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
@@ -85,10 +84,11 @@ public:
     int getNbTicksPerRev();
     int setNbTicksPerRev(int nSteps);
 
+    void setShutterPresent(bool bPresent);
 	int getShutterStepsRange();
 	int setShutterStepsRange(int nSteps);
 
-
+    
     int getBatteryLevel();
 
     double getHomeAz();
@@ -161,7 +161,6 @@ protected:
     SerXInterface   *m_pSerx;
     SleeperInterface *m_pSleeper;
 
-    bool            m_bShutterOnline;
     bool            m_bIsConnected;
     bool            m_bHomed;
     bool            m_bParked;
@@ -173,6 +172,7 @@ protected:
     double          m_dHomeAz;
     double          m_dParkAz;
     
+    bool            m_bShutterPresent;
     int             m_nShutterSteps;
 	int				m_nCurrentShutterCmd;
 
