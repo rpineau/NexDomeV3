@@ -27,7 +27,7 @@ X2Dome::X2Dome(const char* pszSelection,
     m_NexDome.setSleeprPinter(pSleeper);
 
     if (m_pIniUtil)
-    {   
+    {
         m_NexDome.setParkAz( m_pIniUtil->readDouble(PARENT_KEY, CHILD_KEY_PARK_AZ, 0) );
         m_bHasShutterControl = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_SHUTTER_CONTROL, false);
         m_bHomeOnPark = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_HOME_ON_PARK, false);
