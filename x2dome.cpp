@@ -270,14 +270,21 @@ int X2Dome::execModalSettingsDialog()
         m_NexDome.setParkAz(dParkAz);
         if(m_bLinked) {
             m_NexDome.setHomeAz(dHomeAz);
-            m_NexDome.setNbTicksPerRev(n_nbStepPerRev);
-            m_NexDome.setRotationSpeed(nRSpeed);
-            m_NexDome.setRotationAcceleration(nRAcc);
-            m_NexDome.setRotatorDeadZone(nDeadZoneSteps);
+            if(n_nbStepPerRev)
+                m_NexDome.setNbTicksPerRev(n_nbStepPerRev);
+            if(nRSpeed)
+                m_NexDome.setRotationSpeed(nRSpeed);
+            if(nRAcc)
+                m_NexDome.setRotationAcceleration(nRAcc);
+            if(nDeadZoneSteps)
+                m_NexDome.setRotatorDeadZone(nDeadZoneSteps);
 			if(m_bHasShutterControl) {
-				m_NexDome.setShutterStepsRange(n_ShutterSteps);
-				m_NexDome.setShutterSpeed(nSSpeed);
-				m_NexDome.setShutterAcceleration(nSAcc);
+                if(n_ShutterSteps)
+                    m_NexDome.setShutterStepsRange(n_ShutterSteps);
+                if(nSSpeed)
+                    m_NexDome.setShutterSpeed(nSSpeed);
+                if(nSAcc)
+                    m_NexDome.setShutterAcceleration(nSAcc);
 			}
         }
         m_NexDome.saveParamToEEProm();

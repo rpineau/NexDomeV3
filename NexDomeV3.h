@@ -30,7 +30,7 @@
 #include "../../licensedinterfaces/sleeperinterface.h"
 #include "../../licensedinterfaces/loggerinterface.h"
 
-#define DRIVER_VERSION      1.01
+#define DRIVER_VERSION      1.02
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000

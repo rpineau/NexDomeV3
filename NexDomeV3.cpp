@@ -66,7 +66,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_09_28_1745.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_10_20_1530.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
