@@ -32,7 +32,7 @@ CNexDomeV3::CNexDomeV3()
     m_bHomed = false;
 
     m_fVersion = 0.0;
-    m_nHomingTries = 0;
+    // m_nHomingTries = 0;
     m_nGotoTries = 0;
 
     m_nIsRaining = NOT_RAINING;
@@ -66,7 +66,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_10_20_1530.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_10_22_0840.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -1432,7 +1432,7 @@ int CNexDomeV3::goHome()
     fflush(Logfile);
 #endif
 
-    m_nHomingTries = 0;
+    // m_nHomingTries = 0;
     nErr = domeCommand("@GHR\r\n", szResp, SERIAL_BUFFER_SIZE);
     if(nErr) {
 #ifdef PLUGIN_DEBUG
@@ -1760,7 +1760,7 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
         if(m_bUnParking)
             m_bParked = false;
         bComplete = true;
-        m_nHomingTries = 0;
+        // m_nHomingTries = 0;
 #ifdef PLUGIN_DEBUG
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
@@ -1780,14 +1780,16 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
 #endif
         bComplete = false;
         m_bHomed = false;
-        // sometimes we pass the home sensor and the dome doesn't rotate back enough to detect it.
-        // this is mostly the case with firmware 1.10 with the new error correction ... 
+        // sometimes we pass the home sensor and the dome doesn't rotate back enough to detect it
+		// or rotate back too much and passes it
         // so give it another try
-        if(m_nHomingTries == 0) {
-            m_nHomingTries = 1;
+		/*
+		if(m_nHomingTries == 0) {
             nErr = goHome();
+            m_nHomingTries = 1;
         }
 		else
+		 */
         	nErr = ERR_CMDFAILED;
     }
 
@@ -1808,7 +1810,7 @@ int CNexDomeV3::abortCurrentCommand()
     m_bParking = false;
     m_bUnParking = false;
     m_nGotoTries = 1;   // prevents the goto retry
-    m_nHomingTries = 1; // prevents the find home retry
+    // m_nHomingTries = 1; // prevents the find home retry
 
     nErr = domeCommand("@SWR\r\n", szResp, SERIAL_BUFFER_SIZE);
     nErr = domeCommand("@SWS\r\n", szResp, SERIAL_BUFFER_SIZE);
