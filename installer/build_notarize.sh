@@ -21,18 +21,17 @@ if [ ! -z "$installer_signature" ]; then
 	fi
 	echo "Notarization RequestUUID $RequestUUID"
 	sleep 30
-	n=0
 	while true
 	echo "Waiting for notarization"
 	do
 		res=`xcrun altool --notarization-info $RequestUUID --username "pineau@rti-zone.org" --password "@keychain:AC_PASSWORD"`
 		pkg_ok=`echo $res | grep -i "Package Approved"`
+		pkg_in_progress=`echo $res | grep -i "in progress"`
 		if [ ! -z "$pkg_ok" ]; then
 			break
-		fi
-		sleep 30
-		n=$((n+1))
-		if [ $n -eq 10 ]; then
+		elif [ ! -z "$pkg_in_progress" ]; then
+			sleep 60
+		else
 			echo  "Notarization timeout or error"
 			exit 1
 		fi
