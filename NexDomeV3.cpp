@@ -32,8 +32,6 @@ CNexDomeV3::CNexDomeV3()
     m_bHomed = false;
 
     m_fVersion = 0.0;
-    // m_nHomingTries = 0;
-    m_nGotoTries = 0;
 
     m_nIsRaining = NOT_RAINING;
     m_bParking = false;
@@ -206,8 +204,6 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
     int nb_timeout;
     std::string sResp;
     std::string sTmp;
-
-    // m_pSerx->purgeTxRx();
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -1229,7 +1225,6 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
     }
 
     m_dGotoAz = dNewAz;
-    m_nGotoTries = 0;
 	m_bDomeIsMoving = true;
     return nErr;
 }
@@ -1482,7 +1477,6 @@ int CNexDomeV3::isGoToComplete(bool &bComplete)
     // we need to test "large" depending on the heading error , this is new in firmware 1.10 and up
     if ((ceil(m_dGotoAz) <= ceil(dDomeAz)+3) && (ceil(m_dGotoAz) >= ceil(dDomeAz)-3)) {
         bComplete = true;
-        m_nGotoTries = 0;
     }
     else {
         // we're not moving and we're not at the final destination !!!
@@ -1493,17 +1487,8 @@ int CNexDomeV3::isGoToComplete(bool &bComplete)
         fprintf(Logfile, "[%s] [CNexDomeV3::isGoToComplete] ***** ERROR **** domeAz = %3.2f, m_dGotoAz = %3.2f\n", timestamp, dDomeAz, m_dGotoAz);
         fflush(Logfile);
 #endif
-        if(m_nGotoTries == 0) {
-            bComplete = false;
-            m_nGotoTries = 1;
-            gotoAzimuth(m_dGotoAz);
+        nErr = ERR_CMDFAILED;
         }
-        else {
-            m_nGotoTries = 0;
-            nErr = ERR_CMDFAILED;
-        }
-    }
-
     return nErr;
 }
 
@@ -1809,8 +1794,6 @@ int CNexDomeV3::abortCurrentCommand()
 	m_bDomeIsMoving = false;
     m_bParking = false;
     m_bUnParking = false;
-    m_nGotoTries = 1;   // prevents the goto retry
-    // m_nHomingTries = 1; // prevents the find home retry
 
     nErr = domeCommand("@SWR\r\n", szResp, SERIAL_BUFFER_SIZE);
     nErr = domeCommand("@SWS\r\n", szResp, SERIAL_BUFFER_SIZE);

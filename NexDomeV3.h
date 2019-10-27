@@ -190,8 +190,7 @@ protected:
     int             m_nShutterState;
     bool            m_bShutterOnly; // roll off roof so the arduino is running the shutter firmware only.
     char            m_szLogBuffer[PLUGIN_LOG_BUFFER_SIZE];
-    // int             m_nHomingTries;
-    int             m_nGotoTries;
+
     int             m_nIsRaining;
     bool            m_bParking;
     bool            m_bUnParking;
