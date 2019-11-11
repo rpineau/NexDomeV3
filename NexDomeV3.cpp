@@ -1145,7 +1145,7 @@ int CNexDomeV3::syncDome(double dAz, double dEl)
     if(!m_nNbStepPerRev) {
         getDomeStepPerRev(nTmp);
     }
-    nTmp = int((dAz/360)*m_nNbStepPerRev);
+    nTmp = int((dAz/360.0)*m_nNbStepPerRev);
     snprintf(szBuf, SERIAL_BUFFER_SIZE, "@PWR,%d\r\n", nTmp);
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
     if(nErr) {
@@ -1854,11 +1854,26 @@ int CNexDomeV3::setHomeAz(double dAz)
     int nTmp;
     
     m_dHomeAz = dAz;
-    
+
+    #ifdef PLUGIN_DEBUG
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CNexDomeV3::setHomeAz] m_dHomeAz = %3.2f\n", timestamp, m_dHomeAz);
+        fflush(Logfile);
+    #endif
+
     if(!m_bIsConnected)
         return NOT_CONNECTED;
-    nTmp = int(dAz/360.0)*m_nNbStepPerRev;
-    
+    nTmp = int((dAz/360.0)*m_nNbStepPerRev);
+    #ifdef PLUGIN_DEBUG
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CNexDomeV3::setHomeAz] nTmp = %d\n", timestamp, nTmp);
+        fflush(Logfile);
+    #endif
+
     snprintf(szBuf, SERIAL_BUFFER_SIZE, "@HWR,%d\r\n", nTmp);
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
     return nErr;
