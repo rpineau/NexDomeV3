@@ -64,7 +64,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_10_22_0840.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_10_2020.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -115,8 +115,6 @@ int CNexDomeV3::Connect(const char *pszPort)
     // the arduino take over a second to start as it need to init the XBee
     if(m_pSleeper)
         m_pSleeper->sleep(2000);
-    
-    loadParamFromEEProm();
     
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -1417,7 +1415,15 @@ int CNexDomeV3::goHome()
     }
     else if(isDomeAtHome()){
             m_bHomed = true;
-            return PLUGIN_OK;
+            syncDome(m_dHomeAz,m_dCurrentElPosition);
+        #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] CNexDomeV3::goHome syncing to : %3.2f\n", timestamp,m_dHomeAz);
+            fflush(Logfile);
+        #endif
+        return PLUGIN_OK;
     }
 #ifdef PLUGIN_DEBUG
     ltime = time(NULL);
@@ -2200,8 +2206,13 @@ int CNexDomeV3::saveParamToEEProm()
         return NOT_CONNECTED;
     
     nErr = domeCommand("@ZWR\r\n", szResp, SERIAL_BUFFER_SIZE);
-    if(m_bShutterPresent)
+    m_pSleeper->sleep(500);
+
+    if(m_bShutterPresent) {
         nErr = domeCommand("@ZWS\r\n", szResp, SERIAL_BUFFER_SIZE);
+        m_pSleeper->sleep(500);
+
+    }
     return nErr;
 
 }

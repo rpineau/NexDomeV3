@@ -171,7 +171,6 @@ int X2Dome::execModalSettingsDialog()
     dx->setEnabled("parkPosition",true);
 
     if(m_bLinked) {
-        m_NexDome.loadParamFromEEProm();
 		dx->setEnabled("pushButton",true);	 // reset to factory
         dx->setEnabled("homePosition",true);
         dx->setPropertyDouble("homePosition","value", m_NexDome.getHomeAz());
@@ -269,25 +268,25 @@ int X2Dome::execModalSettingsDialog()
         m_NexDome.setHomeOnUnpark(m_bHomeOnUnpark);
         m_NexDome.setParkAz(dParkAz);
         if(m_bLinked) {
-            m_NexDome.setHomeAz(dHomeAz);
+            nErr = m_NexDome.setHomeAz(dHomeAz);
             if(n_nbStepPerRev)
-                m_NexDome.setNbTicksPerRev(n_nbStepPerRev);
+                nErr |= m_NexDome.setNbTicksPerRev(n_nbStepPerRev);
             if(nRSpeed)
-                m_NexDome.setRotationSpeed(nRSpeed);
+                nErr |= m_NexDome.setRotationSpeed(nRSpeed);
             if(nRAcc)
-                m_NexDome.setRotationAcceleration(nRAcc);
+                nErr |= m_NexDome.setRotationAcceleration(nRAcc);
             if(nDeadZoneSteps)
-                m_NexDome.setRotatorDeadZone(nDeadZoneSteps);
+                nErr |= m_NexDome.setRotatorDeadZone(nDeadZoneSteps);
 			if(m_bHasShutterControl) {
                 if(n_ShutterSteps)
-                    m_NexDome.setShutterStepsRange(n_ShutterSteps);
+                    nErr |= m_NexDome.setShutterStepsRange(n_ShutterSteps);
                 if(nSSpeed)
-                    m_NexDome.setShutterSpeed(nSSpeed);
+                    nErr |= m_NexDome.setShutterSpeed(nSSpeed);
                 if(nSAcc)
-                    m_NexDome.setShutterAcceleration(nSAcc);
+                    nErr |= m_NexDome.setShutterAcceleration(nSAcc);
 			}
         }
-        m_NexDome.saveParamToEEProm();
+        nErr |= m_NexDome.saveParamToEEProm();
         // save the values to persistent storage
         nErr |= m_pIniUtil->writeDouble(PARENT_KEY, CHILD_KEY_PARK_AZ, dParkAz);
         nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_SHUTTER_CONTROL, m_bHasShutterControl);
