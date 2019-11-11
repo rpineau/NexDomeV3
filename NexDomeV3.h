@@ -36,7 +36,7 @@
 #define MAX_TIMEOUT 1000
 #define PLUGIN_LOG_BUFFER_SIZE 256
 
-#define PLUGIN_DEBUG 2
+// #define PLUGIN_DEBUG 2
 
 // error codes
 // Error code
