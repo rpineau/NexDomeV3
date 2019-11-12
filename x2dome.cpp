@@ -285,8 +285,8 @@ int X2Dome::execModalSettingsDialog()
                 if(nSAcc)
                     nErr |= m_NexDome.setShutterAcceleration(nSAcc);
 			}
+            nErr |= m_NexDome.saveParamToEEProm();
         }
-        nErr |= m_NexDome.saveParamToEEProm();
         // save the values to persistent storage
         nErr |= m_pIniUtil->writeDouble(PARENT_KEY, CHILD_KEY_PARK_AZ, dParkAz);
         nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_SHUTTER_CONTROL, m_bHasShutterControl);
