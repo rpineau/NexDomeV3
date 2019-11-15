@@ -240,6 +240,7 @@ int X2Dome::execModalSettingsDialog()
         dx->setEnabled("shutterTicks",false);
 		dx->setEnabled("shutterSpeed",false);
         dx->setEnabled("shutterAcceleration",false);
+        dx->setPropertyString("currentStepPos","text", "--");
         dx->setPropertyString("shutterBatteryLevel","text", "--");
         dx->setEnabled("pushButton",false);
         dx->setPropertyString("rainStatus","text", "--");

@@ -30,11 +30,15 @@
 #include "../../licensedinterfaces/sleeperinterface.h"
 #include "../../licensedinterfaces/loggerinterface.h"
 
+#include "StopWatch.h"
+
 #define DRIVER_VERSION      1.06
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
 #define PLUGIN_LOG_BUFFER_SIZE 256
+
+#define CMD_WAIT_INTERVAL	250
 
 #define PLUGIN_DEBUG 2
 
@@ -200,6 +204,7 @@ protected:
 
     double          m_dShutterVolts;
 
+	CStopWatch		m_cmdDelayCheckTimer;
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
     // timestamp for logs

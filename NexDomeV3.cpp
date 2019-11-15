@@ -19,7 +19,9 @@ CNexDomeV3::CNexDomeV3()
     m_dShutterBatteryVolts = 0.0;
     
     m_dHomeAz = 0;
-    
+
+	m_nCurrentRotatorPos = 0;
+	
     m_dCurrentAzPosition = 0.0;
     m_dCurrentElPosition = 0.0;
 
@@ -45,6 +47,8 @@ CNexDomeV3::CNexDomeV3()
     memset(m_szFirmwareVersion,0,SERIAL_BUFFER_SIZE);
     memset(m_szLogBuffer,0,PLUGIN_LOG_BUFFER_SIZE);
 
+	m_cmdDelayCheckTimer.Reset();
+
 #ifdef PLUGIN_DEBUG
 #if defined(SB_WIN_BUILD)
     m_sLogfilePath = getenv("HOMEDRIVE");
@@ -64,7 +68,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_14_2045.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_15_0845.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -216,6 +220,7 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
     unsigned long  ulBytesWrite;
     char szTmp[SERIAL_BUFFER_SIZE];
     int nb_timeout;
+	 int dDelayMs;
     std::string sResp;
     std::string sTmp;
 
@@ -227,8 +232,16 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
     fflush(Logfile);
 #endif
 
+	// do we need to wait ?
+	if(m_cmdDelayCheckTimer.GetElapsedSeconds()<CMD_WAIT_INTERVAL) {
+		dDelayMs = CMD_WAIT_INTERVAL - int(m_cmdDelayCheckTimer.GetElapsedSeconds() *1000);
+		if(dDelayMs>0)
+			m_pSleeper->sleep(dDelayMs);
+	}
+	
     nErr = m_pSerx->writeFile((void *)pszCmd, strlen(pszCmd), ulBytesWrite);
     m_pSerx->flushTx();
+	m_cmdDelayCheckTimer.Reset();
     if(nErr)
         return nErr;
 
@@ -1231,7 +1244,16 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
     while(dNewAz >= 360)
         dNewAz = dNewAz - 360;
 
-	if(dNewAz == m_dCurrentAzPosition) {
+	#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+			ltime = time(NULL);
+			timestamp = asctime(localtime(&ltime));
+			timestamp[strlen(timestamp) - 1] = 0;
+			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %3.2f\n", timestamp, m_dCurrentAzPosition);
+			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz = %3.2f\n", timestamp, dNewAz);
+			fflush(Logfile);
+	#endif
+
+	if(int(dNewAz) == int(m_dCurrentAzPosition)) {
 		m_bDomeIsMoving = false;
 		return nErr;
 	}
@@ -1253,12 +1275,44 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 		nErr = parseFields(szResp, svFields, ' ');
 		if(nErr)
 			return nErr;
-		if(svFields.size())
-			if(std::stoi(svFields[0].c_str()) == 0) {
-				m_bDomeIsMoving = false;
+		if(svFields.size() && svFields[0][0] != ':')
+			try {
+				if(std::stoi(svFields[0].c_str()) == 0) {
+					m_bDomeIsMoving = false;
+					readResponse(szResp, SERIAL_BUFFER_SIZE); // read the :GAR as we got another weird answer in the flow.
+					return nErr;
+				}
+
+			} catch (std::invalid_argument& e) {
+				#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+						ltime = time(NULL);
+						timestamp = asctime(localtime(&ltime));
+						timestamp[strlen(timestamp) - 1] = 0;
+						fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] std::stoi invalid_argument ERROR = %s\n", timestamp, e.what());
+						fflush(Logfile);
+				#endif
 				return nErr;
 			}
-
+			catch (std::out_of_range& e) {
+				#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+						ltime = time(NULL);
+						timestamp = asctime(localtime(&ltime));
+						timestamp[strlen(timestamp) - 1] = 0;
+						fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] std::stoi out_of_range ERROR = %s\n", timestamp, e.what());
+						fflush(Logfile);
+				#endif
+				return nErr;
+			}
+			catch(...) {
+				#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+						ltime = time(NULL);
+						timestamp = asctime(localtime(&ltime));
+						timestamp[strlen(timestamp) - 1] = 0;
+						fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] std::stoi ERROR\n", timestamp);
+						fflush(Logfile);
+				#endif
+				return nErr;
+			}
 
 	}
     m_dGotoAz = dNewAz;
