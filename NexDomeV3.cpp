@@ -64,7 +64,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_11_1930.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_14_1430.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -668,7 +668,7 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
             fprintf(Logfile, "[%s] [CNexDomeV3::getDomeEl] ERROR = %s\n", timestamp, szResp);
             fflush(Logfile);
     #endif
-            return nErr;
+			return nErr;
         }
         nTimeout++;
         if(nTimeout>3)
@@ -1197,8 +1197,9 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
     int nErr = PLUGIN_OK;
     char szBuf[SERIAL_BUFFER_SIZE];
     char szResp[SERIAL_BUFFER_SIZE];
-    int nTmp;
-    
+	int nTmp;
+	std::vector<std::string> svFields;
+
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
@@ -1208,6 +1209,11 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 
     while(dNewAz >= 360)
         dNewAz = dNewAz - 360;
+
+	if(dNewAz == m_dCurrentAzPosition) {
+		m_bDomeIsMoving = false;
+		return nErr;
+	}
 
     snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GAR,%d\r\n", int(dNewAz));
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
@@ -1222,6 +1228,18 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
         return nErr;
     }
 
+	if(strlen(szResp)) {
+		nErr = parseFields(szResp, svFields, ' ');
+		if(nErr)
+			return nErr;
+		if(svFields.size())
+			if(std::stoi(svFields[0].c_str()) == 0) {
+				m_bDomeIsMoving = false;
+				return nErr;
+			}
+
+
+	}
     m_dGotoAz = dNewAz;
 	m_bDomeIsMoving = true;
     return nErr;
