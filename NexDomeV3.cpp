@@ -64,7 +64,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_14_1430.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_14_2045.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -164,6 +164,22 @@ int CNexDomeV3::Connect(const char *pszPort)
         fflush(Logfile);
 #endif
         return nErr;
+    }
+    
+    nErr = getShutterState(m_nShutterState);
+    switch(m_nShutterState) {
+        case OPEN :
+            m_bShutterOpened = true;
+            m_dCurrentElPosition = 90.0;
+            break;
+        case CLOSED :
+            m_bShutterOpened = false;
+            m_dCurrentElPosition = 0.0;
+            break;
+        default :
+            m_bShutterOpened = false;
+            m_dCurrentElPosition = 0.0;
+            break;
     }
 
     return SB_OK;
@@ -657,6 +673,11 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
         dDomeEl = m_dCurrentElPosition;
         return nErr;
     }
+    
+    dDomeEl = m_dCurrentElPosition;
+    return nErr;
+    
+    /// we might use this when firmware timeouts are fixed
     nTimeout = 0;
     do {
         nErr = domeCommand("@PRS\r\n", szResp, SERIAL_BUFFER_SIZE); // might implement latter
