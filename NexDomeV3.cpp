@@ -245,7 +245,7 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
     nb_timeout = 0;
     
     while(true) {
-        if(nb_timeout>10) { // durring a movement we get a lot of extra stuff in there
+        if(nb_timeout>2) { // durring a movement we get a lot of extra stuff in there
             nErr = ERR_RXTIMEOUT;
             return nErr;
         }
@@ -262,7 +262,7 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
             return nErr;
         }
         if(nErr == ERR_DATAOUT) {
-            m_pSleeper->sleep(250);
+            m_pSleeper->sleep(50);
             nb_timeout++;
             continue;
         }
@@ -339,48 +339,83 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 	//cleanup the string
 	sTmp.assign(szResp);
 	sResp = trim(sTmp," \n\r#");
+
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] sTmp = %s\n", timestamp, sTmp.c_str());
+        fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] sResp = %s\n", timestamp, sResp.c_str());
+        fflush(Logfile);
+    #endif
+
+    
 	strncpy(szResp, sResp.c_str(), SERIAL_BUFFER_SIZE);
 
 	// we got some event notification., read next response
 	switch(sResp[0]) {
 		case 'C' :
-			if(strstr(szResp,"CLS")) {
-				strncpy(pszResult, szResp, nResultMaxLen);
+			if(sResp.find("CLS") != -1) {
+				strncpy(pszResult, sResp.c_str(), nResultMaxLen);
 				nErr = CMD_PROC_DONE;
 			}
 			break;
+        case 'O' :
+            if(sResp.find("OPS") != -1) {
+                strncpy(pszResult, sResp.c_str(), nResultMaxLen);
+                nErr = CMD_PROC_DONE;
+            }
+            break;
 		case 'P' :
+            if(sResp.find("PR") != -1) {
+                strncpy(pszResult, sResp.c_str(), nResultMaxLen);
+                nErr = CMD_PROC_DONE;
+            }
+            else if(sResp.find("PW") != -1) {
+                strncpy(pszResult, sResp.c_str(), nResultMaxLen);
+                nErr = CMD_PROC_DONE;
+            }
+            else {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-			ltime = time(NULL);
-			timestamp = asctime(localtime(&ltime));
-			timestamp[strlen(timestamp) - 1] = 0;
-			fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'P' rotator position update : '%s'\n", timestamp, szResp);
-			fflush(Logfile);
+                ltime = time(NULL);
+                timestamp = asctime(localtime(&ltime));
+                timestamp[strlen(timestamp) - 1] = 0;
+                fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'P' rotator position update (cur pos = %d) : '%s'\n", timestamp, m_nCurrentRotatorPos, szResp);
+                fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'P' rotator position update (cur az = %3.2f) : '%s'\n", timestamp, m_dCurrentAzPosition, szResp);
+                fflush(Logfile);
 #endif
-			m_nCurrentRotatorPos = atoi(szResp+1); // Pxxxxx
-			// convert steps to deg
-			m_dCurrentAzPosition = (double(m_nCurrentRotatorPos)/m_nNbStepPerRev) * 360.0;
-			strncpy(pszResult, szResp, nResultMaxLen);
-			nErr = CMD_PROC_DONE;
-			break;
+                m_nCurrentRotatorPos = atoi(szResp+1); // Pxxxxx
+                // convert steps to deg
+                m_dCurrentAzPosition = (double(m_nCurrentRotatorPos)/m_nNbStepPerRev) * 360.0;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                ltime = time(NULL);
+                timestamp = asctime(localtime(&ltime));
+                timestamp[strlen(timestamp) - 1] = 0;
+                fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'P' rotator position update (new pos = %d) : '%s'\n", timestamp, m_nCurrentRotatorPos, szResp);
+                fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'P' rotator position update (new az = %3.2f) : '%s'\n", timestamp, m_dCurrentAzPosition, szResp);
+                fflush(Logfile);
+#endif
+                break;
+            }
 
 		case 'S' :
-			if(strstr(szResp,"SES")) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-				ltime = time(NULL);
-				timestamp = asctime(localtime(&ltime));
-				timestamp[strlen(timestamp) - 1] = 0;
-				fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'S' shutter state update : '%s'\n", timestamp, szResp);
-				fflush(Logfile);
-#endif
-				m_nCurrentShutterPos = atoi(szResp+1); // Sxxxxx
-				// convert steps to deg
-				if(m_nShutterSteps)
-					m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
-				strncpy(pszResult, szResp, nResultMaxLen);
+            if(sResp.find("SES") != -1) {
+                strncpy(pszResult, sResp.c_str(), nResultMaxLen);
 				nErr = CMD_PROC_DONE;
 			}
-
+            else {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                ltime = time(NULL);
+                timestamp = asctime(localtime(&ltime));
+                timestamp[strlen(timestamp) - 1] = 0;
+                fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'S' shutter state update : '%s'\n", timestamp, szResp);
+                fflush(Logfile);
+#endif
+                m_nCurrentShutterPos = atoi(szResp+1); // Sxxxxx
+                // convert steps to deg
+                if(m_nShutterSteps)
+                    m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+            }
 			break;
 
 		case 'X' :
@@ -399,12 +434,9 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 			}
 			break;
 
-		case 'o' :
-			break;
-
 		case ':' :
 			// we got some response, parse
-			if(strstr(szResp,":BV")) {
+            if(sResp.find(":BV") != -1) {
 				memcpy(szTmp, szResp+3, SERIAL_BUFFER_SIZE);
 				m_dShutterVolts = float(atoi(szTmp)) * 3.0 * (5.0 / 1023.0);
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -415,7 +447,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 				fflush(Logfile);
 #endif
 			}
-			else if(strstr(szResp,":RainStopped")) {
+            else if(sResp.find(":RainStopped") != -1) {
 				m_nIsRaining = NOT_RAINING;
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
 				ltime = time(NULL);
@@ -425,7 +457,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 				fflush(Logfile);
 #endif
 			}
-			else if(strstr(szResp,":Rain")) {
+            else if(sResp.find(":Rain") != -1) {
 				m_nIsRaining = RAINING;
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
 				ltime = time(NULL);
@@ -435,22 +467,22 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 				fflush(Logfile);
 #endif
 			}
-			else if(strstr(szResp,":left")) {
+            else if(sResp.find(":left") != -1) {
 			}
-			else if(strstr(szResp,":right")) {
+            else if(sResp.find(":right") != -1) {
 			}
-			else if(strstr(szResp,":open")) {
+            else if(sResp.find(":open") != -1) {
 			}
-			else if(strstr(szResp,":close")) {
+            else if(sResp.find(":close") != -1) {
 			}
 			else {
-				strncpy(pszResult, &szResp[1], nResultMaxLen);
+                strncpy(pszResult, szResp+1, nResultMaxLen);
 				nErr = CMD_PROC_DONE;
 			}
 			break;
 
 		default :
-			strncpy(pszResult, szResp, nResultMaxLen);
+			strncpy(pszResult, sResp.c_str(), nResultMaxLen);
 			nErr = CMD_PROC_DONE;
 			break;
 	}
@@ -490,18 +522,6 @@ int CNexDomeV3::processAsyncResponses()
                 return nErr;
 
             if(strlen(szResp)) {
-                //cleanup the string
-                sTmp.assign(szResp);
-                sResp = trim(sTmp," \n\r#");
-                strncpy(szResp, sResp.c_str(), SERIAL_BUFFER_SIZE);
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                ltime = time(NULL);
-                timestamp = asctime(localtime(&ltime));
-                timestamp[strlen(timestamp) - 1] = 0;
-                fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses] response : '%s'\n", timestamp, szResp);
-                fflush(Logfile);
-#endif
-
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
                 ltime = time(NULL);
                 timestamp = asctime(localtime(&ltime));
@@ -545,6 +565,7 @@ int CNexDomeV3::getDomeAz(double &dDomeAz)
 	}
     
     nTimeout = 0;
+
     do {
         nErr = domeCommand("@PRR\r\n", szResp,  SERIAL_BUFFER_SIZE);
         if(nErr && nTimeout>1) {
@@ -1176,10 +1197,13 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 			timestamp[strlen(timestamp) - 1] = 0;
 			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %3.2f\n", timestamp, m_dCurrentAzPosition);
 			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz = %3.2f\n", timestamp, dNewAz);
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %d\n", timestamp, int(round(m_dCurrentAzPosition)));
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz = %d\n", timestamp, int(round(dNewAz)));
 			fflush(Logfile);
 	#endif
 
-	if(int(dNewAz) == int(m_dCurrentAzPosition)) {
+	if(int(round(dNewAz)) == int(round(m_dCurrentAzPosition))) {
+        m_dGotoAz = dNewAz;
 		m_bDomeIsMoving = false;
 		return nErr;
 	}
@@ -1196,14 +1220,24 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 #endif
         return nErr;
     }
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] szResp = %s\n", timestamp, szResp);
+            fflush(Logfile);
+    #endif
+    m_bDomeIsMoving = true;
 	nb_timeout = 0;
 	memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-	m_bDomeIsMoving = true;
 	while(!strstr(szBuf, "GAR") && nb_timeout < 3) {
-		nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
-		if(strstr(szResp,"0 ")) // no movememnt needed
+        nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
+        if(strstr(szResp,"0 ")) // no movememnt needed
 			m_bDomeIsMoving = false;
 		if(strstr(szResp, "GAR") ) {
+            m_bDomeIsMoving = true;
+            if(nErr == CMD_PROC_DONE)
+                nErr = PLUGIN_OK;
 			break;
 		}
 		nb_timeout++;
@@ -1217,7 +1251,9 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 int CNexDomeV3::openShutter()
 {
     int nErr = PLUGIN_OK;
+    char szBuf[SERIAL_BUFFER_SIZE];
     char szResp[SERIAL_BUFFER_SIZE];
+    int nb_timeout;
     int nState;
     
     if(!m_bIsConnected)
@@ -1249,8 +1285,22 @@ int CNexDomeV3::openShutter()
 #endif
     }
 
-	m_nCurrentShutterCmd = OPENING;
-    m_bDomeIsMoving = true;
+    nb_timeout = 0;
+    memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
+    m_bDomeIsMoving = false;
+    while(!strstr(szBuf, "OPS") && nb_timeout < 3) {
+        nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
+        if(strstr(szResp, "OPS") ) {
+            m_bDomeIsMoving = true;
+            if(nErr == CMD_PROC_DONE)
+                nErr = PLUGIN_OK;
+            break;
+        }
+        nb_timeout++;
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
+    }
+
+    m_nCurrentShutterCmd = OPENING;
 
     return nErr;
 }
@@ -1258,9 +1308,11 @@ int CNexDomeV3::openShutter()
 int CNexDomeV3::closeShutter()
 {
     int nErr = PLUGIN_OK;
+    char szBuf[SERIAL_BUFFER_SIZE];
     char szResp[SERIAL_BUFFER_SIZE];
+    int nb_timeout;
     int nState;
-    
+
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
@@ -1290,8 +1342,22 @@ int CNexDomeV3::closeShutter()
 #endif
     }
 
+    nb_timeout = 0;
+    memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
+    m_bDomeIsMoving = false;
+    while(!strstr(szBuf, "CLS") && nb_timeout < 3) {
+        nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
+        if(strstr(szResp, "CLS") ) {
+            m_bDomeIsMoving = true;
+            if(nErr == CMD_PROC_DONE)
+                nErr = PLUGIN_OK;
+            break;
+        }
+        nb_timeout++;
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
+    }
+
 	m_nCurrentShutterCmd = CLOSING;
-    m_bDomeIsMoving = true;
     return nErr;
 }
 
@@ -1337,6 +1403,7 @@ int CNexDomeV3::getFirmwareVersion(char *szVersion, int nStrMaxLen)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CNexDomeV3::getFirmwareVersion] szResp = %s\n", timestamp, szResp);
     fprintf(Logfile, "[%s] [CNexDomeV3::getFirmwareVersion] szTmp = %s\n", timestamp, szTmp);
     fflush(Logfile);
 #endif
@@ -1393,7 +1460,9 @@ int CNexDomeV3::goHome()
 {
     int nErr = PLUGIN_OK;
     char szResp[SERIAL_BUFFER_SIZE];
-
+    char szBuf[SERIAL_BUFFER_SIZE];
+    int nb_timeout;
+    
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
@@ -1432,7 +1501,27 @@ int CNexDomeV3::goHome()
 #endif
         return nErr;
     }
-	m_bDomeIsMoving = true;
+    nb_timeout = 0;
+    memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
+    m_bDomeIsMoving = true;
+    while(!strstr(szBuf, "GHR") && nb_timeout < 3) {
+        nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
+        if(strstr(szResp, "GHR") ) {
+            #ifdef PLUGIN_DEBUG
+                    ltime = time(NULL);
+                    timestamp = asctime(localtime(&ltime));
+                    timestamp[strlen(timestamp) - 1] = 0;
+                    fprintf(Logfile, "[%s] [CNexDomeV3::goHome] szResp = %s\n", timestamp, szResp);
+                    fflush(Logfile);
+            #endif
+            break;
+        }
+        if(nErr == CMD_PROC_DONE)
+            nErr = PLUGIN_OK;
+        nb_timeout++;
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
+    }
+
     return nErr;
 }
 
@@ -1444,8 +1533,23 @@ int CNexDomeV3::isGoToComplete(bool &bComplete)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CNexDomeV3::isGoToComplete]\n", timestamp);
+        fflush(Logfile);
+    #endif
+
     if(isDomeMoving()) {
         bComplete = false;
+        #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] [CNexDomeV3::isGoToComplete] Dome is still moving\n", timestamp);
+            fflush(Logfile);
+        #endif
         return nErr;
     }
 
@@ -1758,17 +1862,7 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
 #endif
         bComplete = false;
         m_bHomed = false;
-        // sometimes we pass the home sensor and the dome doesn't rotate back enough to detect it
-		// or rotate back too much and passes it
-        // so give it another try
-		/*
-		if(m_nHomingTries == 0) {
-            nErr = goHome();
-            m_nHomingTries = 1;
-        }
-		else
-		 */
-        	nErr = ERR_CMDFAILED;
+        nErr = ERR_CMDFAILED;
     }
 
     return nErr;
