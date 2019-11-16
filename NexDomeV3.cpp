@@ -218,11 +218,8 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
     int nErr = PLUGIN_OK;
     char szResp[SERIAL_BUFFER_SIZE];
     unsigned long  ulBytesWrite;
-    char szTmp[SERIAL_BUFFER_SIZE];
     int nb_timeout;
 	 int dDelayMs;
-    std::string sResp;
-    std::string sTmp;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -269,149 +266,12 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
             nb_timeout++;
             continue;
         }
-        //cleanup the string
-        sTmp.assign(szResp);
-        sResp = trim(sTmp," \n\r#");
-        strncpy(szResp, sResp.c_str(), SERIAL_BUFFER_SIZE);
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] response : '%s'\n", timestamp, szResp);
-        fflush(Logfile);
-#endif
-        // we got some event notification., read next response
-        switch(sResp[0]) {
-            case 'C' :
-                if(strstr(szResp,"CLS")) {
-                    strncpy(pszResult, szResp, nResultMaxLen);
-                    return nErr;
-                }
-                nb_timeout++;
-                break;
-            case 'P' :
-                if(pszCmd[3] == 'R') {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                    ltime = time(NULL);
-                    timestamp = asctime(localtime(&ltime));
-                    timestamp[strlen(timestamp) - 1] = 0;
-                    fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] case 'P' rotator position update : '%s'\n", timestamp, szResp);
-                    fflush(Logfile);
-#endif
-                    strncpy(pszResult, szResp, nResultMaxLen);
-                }
-                else if (pszCmd[3] == 'S') {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                    ltime = time(NULL);
-                    timestamp = asctime(localtime(&ltime));
-                    timestamp[strlen(timestamp) - 1] = 0;
-                    fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] case 'P' shutter position update : '%s'\n", timestamp, szResp);
-                    fflush(Logfile);
-#endif
-                    strncpy(pszResult, szResp, nResultMaxLen);
-                }
-                else {
-                    strncpy(pszResult, szResp, nResultMaxLen);
-                }
-                return nErr;
-                break;
+		nErr = processResponse(szResp, pszResult, nResultMaxLen);
+		if(nErr && nErr != CMD_PROC_DONE)
+			return nErr;
 
-            case 'S' :
-                if(strstr(szResp,"SES")) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                    ltime = time(NULL);
-                    timestamp = asctime(localtime(&ltime));
-                    timestamp[strlen(timestamp) - 1] = 0;
-                    fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] case 'S' shutter state update : '%s'\n", timestamp, szResp);
-                    fflush(Logfile);
-#endif
-                    strncpy(pszResult, szResp, nResultMaxLen);
-                    return nErr;
-                }
-
-                nb_timeout++;
-                break;
-                
-            case 'X' :
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                ltime = time(NULL);
-                timestamp = asctime(localtime(&ltime));
-                timestamp[strlen(timestamp) - 1] = 0;
-                fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] XBee status : '%s'\n", timestamp, szResp);
-                fflush(Logfile);
-#endif
-                if(strstr(szResp, "Online")) {
-                    m_bShutterPresent = true;
-                }
-                else {
-                    m_bShutterPresent = false;
-                }
-                nb_timeout++;
-                break;
-
-            case 'o' :
-                nb_timeout++;
-                break;
-
-            case ':' :
-                // we got some response, parse and read next response if needed
-                if(strstr(szResp,":BV")) {
-                    memcpy(szTmp, szResp+3, SERIAL_BUFFER_SIZE);
-                    m_dShutterVolts = float(atoi(szTmp)) * 3.0 * (5.0 / 1023.0);
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                    ltime = time(NULL);
-                    timestamp = asctime(localtime(&ltime));
-                    timestamp[strlen(timestamp) - 1] = 0;
-                    fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] m_dShutterVolts : %3.2f\n", timestamp, m_dShutterVolts);
-                    fflush(Logfile);
-#endif
-                    nb_timeout++;
-                }
-                else if(strstr(szResp,":RainStopped")) {
-                    m_nIsRaining = NOT_RAINING;
-                    nb_timeout++;
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                    ltime = time(NULL);
-                    timestamp = asctime(localtime(&ltime));
-                    timestamp[strlen(timestamp) - 1] = 0;
-                    fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] NOT_RAINING\n", timestamp);
-                    fflush(Logfile);
-#endif
-                }
-                else if(strstr(szResp,":Rain")) {
-                    m_nIsRaining = RAINING;
-                    nb_timeout++;
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                    ltime = time(NULL);
-                    timestamp = asctime(localtime(&ltime));
-                    timestamp[strlen(timestamp) - 1] = 0;
-                    fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] RAINING\n", timestamp);
-                    fflush(Logfile);
-#endif
-                }
-                else if(strstr(szResp,":left")) {
-                    nb_timeout++;
-                }
-                else if(strstr(szResp,":right")) {
-                    nb_timeout++;
-                }
-                else if(strstr(szResp,":open")) {
-                    nb_timeout++;
-                }
-                else if(strstr(szResp,":close")) {
-                    nb_timeout++;
-                }
-                else {
-                    strncpy(pszResult, &szResp[1], nResultMaxLen);
-                    return nErr;
-                }
-                break;
-
-            default :
-                strncpy(pszResult, szResp, nResultMaxLen);
-                return nErr;
-                break;
-        }
+		if(nErr == CMD_PROC_DONE)
+			return PLUGIN_OK;
         continue;
     }
 
@@ -457,6 +317,143 @@ int CNexDomeV3::readResponse(char *szRespBuffer, int nBufferLen, int nTimeout )
 
 	if(ulTotalBytesRead)
 		*(pszBufPtr-1) = 0; //remove the \n
+
+	return nErr;
+}
+
+int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen)
+{
+	int nErr = PLUGIN_OK;
+    char szTmp[SERIAL_BUFFER_SIZE];
+    std::string sResp;
+    std::string sTmp;
+
+	#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+		ltime = time(NULL);
+		timestamp = asctime(localtime(&ltime));
+		timestamp[strlen(timestamp) - 1] = 0;
+		fprintf(Logfile, "[%s] [CNexDomeV3::processResponse]\n", timestamp);
+		fflush(Logfile);
+	#endif
+
+	//cleanup the string
+	sTmp.assign(szResp);
+	sResp = trim(sTmp," \n\r#");
+	strncpy(szResp, sResp.c_str(), SERIAL_BUFFER_SIZE);
+
+	// we got some event notification., read next response
+	switch(sResp[0]) {
+		case 'C' :
+			if(strstr(szResp,"CLS")) {
+				strncpy(pszResult, szResp, nResultMaxLen);
+				nErr = CMD_PROC_DONE;
+			}
+			break;
+		case 'P' :
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+			ltime = time(NULL);
+			timestamp = asctime(localtime(&ltime));
+			timestamp[strlen(timestamp) - 1] = 0;
+			fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'P' rotator position update : '%s'\n", timestamp, szResp);
+			fflush(Logfile);
+#endif
+			m_nCurrentRotatorPos = atoi(szResp+1); // Pxxxxx
+			// convert steps to deg
+			m_dCurrentAzPosition = (double(m_nCurrentRotatorPos)/m_nNbStepPerRev) * 360.0;
+			strncpy(pszResult, szResp, nResultMaxLen);
+			nErr = CMD_PROC_DONE;
+			break;
+
+		case 'S' :
+			if(strstr(szResp,"SES")) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+				ltime = time(NULL);
+				timestamp = asctime(localtime(&ltime));
+				timestamp[strlen(timestamp) - 1] = 0;
+				fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] case 'S' shutter state update : '%s'\n", timestamp, szResp);
+				fflush(Logfile);
+#endif
+				m_nCurrentShutterPos = atoi(szResp+1); // Sxxxxx
+				// convert steps to deg
+				if(m_nShutterSteps)
+					m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+				strncpy(pszResult, szResp, nResultMaxLen);
+				nErr = CMD_PROC_DONE;
+			}
+
+			break;
+
+		case 'X' :
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+			ltime = time(NULL);
+			timestamp = asctime(localtime(&ltime));
+			timestamp[strlen(timestamp) - 1] = 0;
+			fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] XBee status : '%s'\n", timestamp, szResp);
+			fflush(Logfile);
+#endif
+			if(strstr(szResp, "Online")) {
+				m_bShutterPresent = true;
+			}
+			else {
+				m_bShutterPresent = false;
+			}
+			break;
+
+		case 'o' :
+			break;
+
+		case ':' :
+			// we got some response, parse
+			if(strstr(szResp,":BV")) {
+				memcpy(szTmp, szResp+3, SERIAL_BUFFER_SIZE);
+				m_dShutterVolts = float(atoi(szTmp)) * 3.0 * (5.0 / 1023.0);
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+				ltime = time(NULL);
+				timestamp = asctime(localtime(&ltime));
+				timestamp[strlen(timestamp) - 1] = 0;
+				fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] m_dShutterVolts : %3.2f\n", timestamp, m_dShutterVolts);
+				fflush(Logfile);
+#endif
+			}
+			else if(strstr(szResp,":RainStopped")) {
+				m_nIsRaining = NOT_RAINING;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+				ltime = time(NULL);
+				timestamp = asctime(localtime(&ltime));
+				timestamp[strlen(timestamp) - 1] = 0;
+				fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] NOT_RAINING\n", timestamp);
+				fflush(Logfile);
+#endif
+			}
+			else if(strstr(szResp,":Rain")) {
+				m_nIsRaining = RAINING;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+				ltime = time(NULL);
+				timestamp = asctime(localtime(&ltime));
+				timestamp[strlen(timestamp) - 1] = 0;
+				fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] RAINING\n", timestamp);
+				fflush(Logfile);
+#endif
+			}
+			else if(strstr(szResp,":left")) {
+			}
+			else if(strstr(szResp,":right")) {
+			}
+			else if(strstr(szResp,":open")) {
+			}
+			else if(strstr(szResp,":close")) {
+			}
+			else {
+				strncpy(pszResult, &szResp[1], nResultMaxLen);
+				nErr = CMD_PROC_DONE;
+			}
+			break;
+
+		default :
+			strncpy(pszResult, szResp, nResultMaxLen);
+			nErr = CMD_PROC_DONE;
+			break;
+	}
 
 	return nErr;
 }
@@ -512,85 +509,12 @@ int CNexDomeV3::processAsyncResponses()
                 fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses] szResp = '%s'\n", timestamp, szResp);
                 fflush(Logfile);
 #endif
-                switch(szResp[0]) {
-                    case 'P' :
-                        m_nCurrentRotatorPos = atoi(szResp+1); // Pxxxxx
-                        // convert steps to deg
-                        m_dCurrentAzPosition = (double(m_nCurrentRotatorPos)/m_nNbStepPerRev) * 360.0;
-                        break;
-                    case 'S' :
-                        m_nCurrentShutterPos = atoi(szResp+1); // Sxxxxx
-                        // convert steps to deg
-                        if(m_nShutterSteps)
-                            m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
-                        break;
-                    case 'X' :
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                        ltime = time(NULL);
-                        timestamp = asctime(localtime(&ltime));
-                        timestamp[strlen(timestamp) - 1] = 0;
-                        fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses] XBee status : '%s'\n", timestamp, szResp);
-                        fflush(Logfile);
-#endif
-                        if(strstr(szResp, "Online")) {
-                            m_bShutterPresent = true;
-                        }
-                        else {
-                            m_bShutterPresent = false;
-                        }
-                        nb_timeout++;
-                        break;
-                    case ':' :
-                        if(strstr(szResp,":BV")) {
-                            memcpy(szTmp, szResp+3, SERIAL_BUFFER_SIZE);
-                            m_dShutterVolts = float(atoi(szTmp)) * 3.0 * (5.0 / 1023.0);
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                            ltime = time(NULL);
-                            timestamp = asctime(localtime(&ltime));
-                            timestamp[strlen(timestamp) - 1] = 0;
-                            fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] m_dShutterVolts : %3.2f\n", timestamp, m_dShutterVolts);
-                            fflush(Logfile);
-#endif
-                            nb_timeout++;
-                        }
-                        else if(strstr(szResp,":RainStopped")) {
-                            m_nIsRaining = NOT_RAINING;
-                            nb_timeout++;
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                            ltime = time(NULL);
-                            timestamp = asctime(localtime(&ltime));
-                            timestamp[strlen(timestamp) - 1] = 0;
-                            fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] NOT_RAINING\n", timestamp);
-                            fflush(Logfile);
-#endif
-                        }
-                        else if(strstr(szResp,":Rain")) {
-                            m_nIsRaining = RAINING;
-                            nb_timeout++;
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-                            ltime = time(NULL);
-                            timestamp = asctime(localtime(&ltime));
-                            timestamp[strlen(timestamp) - 1] = 0;
-                            fprintf(Logfile, "[%s] [CNexDomeV3::domeCommand] RAINING\n", timestamp);
-                            fflush(Logfile);
-#endif
-                        }
-                        else if(strstr(szResp,":left")) {
-                            nb_timeout++;
-                        }
-                        else if(strstr(szResp,":right")) {
-                            nb_timeout++;
-                        }
-                        else if(strstr(szResp,":open")) {
-                            nb_timeout++;
-                        }
-                        else if(strstr(szResp,":close")) {
-                            nb_timeout++;
-                        }
-                        break;
-                    default:
-                        break;
-                }
+
+				nErr = processResponse(szResp, szTmp, SERIAL_BUFFER_SIZE);
+				if(nErr && nErr != CMD_PROC_DONE)
+					return nErr;
+				if(!nErr) // no error but not a CMD_PROC_DONE
+					nb_timeout++;
             }
         }
     } while(nbBytesWaiting);
@@ -1232,6 +1156,8 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
     char szBuf[SERIAL_BUFFER_SIZE];
     char szResp[SERIAL_BUFFER_SIZE];
 	int nTmp;
+	int nb_timeout;
+
 	std::vector<std::string> svFields;
 
     if(!m_bIsConnected)
@@ -1270,53 +1196,21 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 #endif
         return nErr;
     }
-
-	if(strlen(szResp)) {
-		nErr = parseFields(szResp, svFields, ' ');
-		if(nErr)
-			return nErr;
-		if(svFields.size() && svFields[0][0] != ':')
-			try {
-				if(std::stoi(svFields[0].c_str()) == 0) {
-					m_bDomeIsMoving = false;
-					readResponse(szResp, SERIAL_BUFFER_SIZE); // read the :GAR as we got another weird answer in the flow.
-					return nErr;
-				}
-
-			} catch (std::invalid_argument& e) {
-				#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-						ltime = time(NULL);
-						timestamp = asctime(localtime(&ltime));
-						timestamp[strlen(timestamp) - 1] = 0;
-						fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] std::stoi invalid_argument ERROR = %s\n", timestamp, e.what());
-						fflush(Logfile);
-				#endif
-				return nErr;
-			}
-			catch (std::out_of_range& e) {
-				#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-						ltime = time(NULL);
-						timestamp = asctime(localtime(&ltime));
-						timestamp[strlen(timestamp) - 1] = 0;
-						fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] std::stoi out_of_range ERROR = %s\n", timestamp, e.what());
-						fflush(Logfile);
-				#endif
-				return nErr;
-			}
-			catch(...) {
-				#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-						ltime = time(NULL);
-						timestamp = asctime(localtime(&ltime));
-						timestamp[strlen(timestamp) - 1] = 0;
-						fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] std::stoi ERROR\n", timestamp);
-						fflush(Logfile);
-				#endif
-				return nErr;
-			}
-
-	}
-    m_dGotoAz = dNewAz;
+	nb_timeout = 0;
+	memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
 	m_bDomeIsMoving = true;
+	while(!strstr(szBuf, "GAR") && nb_timeout < 3) {
+		nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
+		if(strstr(szResp,"0 ")) // no movememnt needed
+			m_bDomeIsMoving = false;
+		if(strstr(szResp, "GAR") ) {
+			break;
+		}
+		nb_timeout++;
+		readResponse(szBuf, SERIAL_BUFFER_SIZE);
+	}
+	m_dGotoAz = dNewAz;
+
     return nErr;
 }
 

@@ -44,7 +44,7 @@
 
 // error codes
 // Error code
-enum NexDomeErrors {PLUGIN_OK=0, NOT_CONNECTED, PLUGIN_CANT_CONNECT, PLUGIN_BAD_CMD_RESPONSE, COMMAND_FAILED};
+enum NexDomeErrors {PLUGIN_OK=0, CMD_PROC_DONE, NOT_CONNECTED, PLUGIN_CANT_CONNECT, PLUGIN_BAD_CMD_RESPONSE, COMMAND_FAILED};
 enum NexDomeShutterState {OPEN = 0, CLOSED, OPENING, CLOSING, IDLE, SHUTTER_ERROR };
 enum HomeStatuses {NEVER_HOMED = 0, HOMED, ATHOME};
 // RG-11
@@ -137,6 +137,7 @@ protected:
     
 	int             domeCommand(const char *cmd, char *result, int resultMaxLen);
     int             readResponse(char *respBuffer, int nBufferLen, int nTimeout = MAX_TIMEOUT);
+	int				processResponse(char *szResp, char *pszResult, int nResultMaxLen);
     int             processAsyncResponses();
     
     int             getDomeAz(double &dDomeAz);
