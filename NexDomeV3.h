@@ -15,6 +15,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 #ifdef SB_MAC_BUILD
 #include <unistd.h>
 #endif
