@@ -41,7 +41,7 @@
 
 #define CMD_WAIT_INTERVAL	250
 
-#define PLUGIN_DEBUG 2
+// #define PLUGIN_DEBUG 2
 
 // error codes
 // Error code

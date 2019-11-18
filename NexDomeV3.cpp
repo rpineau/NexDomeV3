@@ -68,7 +68,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_17_1742.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_17_2025.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -344,7 +344,6 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] sTmp = %s\n", timestamp, sTmp.c_str());
         fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] sResp = %s\n", timestamp, sResp.c_str());
         fflush(Logfile);
     #endif
@@ -998,16 +997,17 @@ bool CNexDomeV3::isDomeMoving()
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-	if(!m_bDomeIsMoving)
-		return false;
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving] In : m_bDomeIsMoving = %s\n", timestamp, m_bDomeIsMoving?"Yes":"No");
+        fflush(Logfile);
+    #endif
+    if(!m_bDomeIsMoving) {
+        return false;
+    }
 
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-	ltime = time(NULL);
-	timestamp = asctime(localtime(&ltime));
-	timestamp[strlen(timestamp) - 1] = 0;
-	fprintf(Logfile, "[%s] [CNexDomeV3::isDomeMoving] In : m_bDomeIsMoving = %s\n", timestamp, m_bDomeIsMoving?"Yes":"No");
-	fflush(Logfile);
-#endif
 	do {
 		m_pSerx->bytesWaitingRx(nbBytesWaiting);
 		if(nbBytesWaiting) {
@@ -1216,9 +1216,9 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 			timestamp = asctime(localtime(&ltime));
 			timestamp[strlen(timestamp) - 1] = 0;
 			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %3.2f\n", timestamp, m_dCurrentAzPosition);
-			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz = %3.2f\n", timestamp, dNewAz);
+			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz               = %3.2f\n", timestamp, dNewAz);
             fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %d\n", timestamp, int(round(m_dCurrentAzPosition)));
-            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz = %d\n", timestamp, int(round(dNewAz)));
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz               = %d\n", timestamp, int(round(dNewAz)));
 			fflush(Logfile);
 	#endif
 
@@ -1228,7 +1228,7 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 		return nErr;
 	}
 
-    snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GAR,%d\r\n", int(dNewAz));
+    snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GAR,%d\r\n", int(round(dNewAz)));
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
     if(nErr) {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -1250,18 +1250,7 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
     m_bDomeIsMoving = true;
 	nb_timeout = 0;
 	memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-	while(!strstr(szBuf, "GAR") && nb_timeout < 3) {
-        nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
-        if(strstr(szResp,"0 ")) // no movememnt needed
-			m_bDomeIsMoving = false;
-		if(strstr(szResp, "GAR") ) {
-            m_bDomeIsMoving = true;
-			break;
-		}
-		nb_timeout++;
-		readResponse(szBuf, SERIAL_BUFFER_SIZE);
-	}
-
+    processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
     if(nErr == CMD_PROC_DONE)
         nErr = PLUGIN_OK;
     
@@ -1527,22 +1516,7 @@ int CNexDomeV3::goHome()
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     m_bDomeIsMoving = true;
-    while(!strstr(szBuf, "GHR") && nb_timeout < 3) {
-        nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
-        if(strstr(szResp, "GHR") ) {
-            #ifdef PLUGIN_DEBUG
-                    ltime = time(NULL);
-                    timestamp = asctime(localtime(&ltime));
-                    timestamp[strlen(timestamp) - 1] = 0;
-                    fprintf(Logfile, "[%s] [CNexDomeV3::goHome] szResp = %s\n", timestamp, szResp);
-                    fflush(Logfile);
-            #endif
-            break;
-        }
-        nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
-    }
-
+    processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
     if(nErr == CMD_PROC_DONE)
         nErr = PLUGIN_OK;
 
