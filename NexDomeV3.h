@@ -15,6 +15,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 #ifdef SB_MAC_BUILD
 #include <unistd.h>
 #endif
@@ -30,17 +31,21 @@
 #include "../../licensedinterfaces/sleeperinterface.h"
 #include "../../licensedinterfaces/loggerinterface.h"
 
-#define DRIVER_VERSION      1.03
+#include "StopWatch.h"
+
+#define DRIVER_VERSION      1.06
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
 #define PLUGIN_LOG_BUFFER_SIZE 256
 
+#define CMD_WAIT_INTERVAL	250
+
 // #define PLUGIN_DEBUG 2
 
 // error codes
 // Error code
-enum NexDomeErrors {PLUGIN_OK=0, NOT_CONNECTED, PLUGIN_CANT_CONNECT, PLUGIN_BAD_CMD_RESPONSE, COMMAND_FAILED};
+enum NexDomeErrors {PLUGIN_OK=0, CMD_PROC_DONE, NOT_CONNECTED, PLUGIN_CANT_CONNECT, PLUGIN_BAD_CMD_RESPONSE, COMMAND_FAILED};
 enum NexDomeShutterState {OPEN = 0, CLOSED, OPENING, CLOSING, IDLE, SHUTTER_ERROR };
 enum HomeStatuses {NEVER_HOMED = 0, HOMED, ATHOME};
 // RG-11
@@ -133,6 +138,7 @@ protected:
     
 	int             domeCommand(const char *cmd, char *result, int resultMaxLen);
     int             readResponse(char *respBuffer, int nBufferLen, int nTimeout = MAX_TIMEOUT);
+	int				processResponse(char *szResp, char *pszResult, int nResultMaxLen);
     int             processAsyncResponses();
     
     int             getDomeAz(double &dDomeAz);
@@ -190,8 +196,7 @@ protected:
     int             m_nShutterState;
     bool            m_bShutterOnly; // roll off roof so the arduino is running the shutter firmware only.
     char            m_szLogBuffer[PLUGIN_LOG_BUFFER_SIZE];
-    // int             m_nHomingTries;
-    int             m_nGotoTries;
+
     int             m_nIsRaining;
     bool            m_bParking;
     bool            m_bUnParking;
@@ -201,6 +206,7 @@ protected:
 
     double          m_dShutterVolts;
 
+	CStopWatch		m_cmdDelayCheckTimer;
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
     // timestamp for logs

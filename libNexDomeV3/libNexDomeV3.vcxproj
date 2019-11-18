@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClInclude Include="..\main.h" />
     <ClInclude Include="..\NexDomeV3.h" />
+    <ClInclude Include="..\StopWatch.h" />
     <ClInclude Include="..\x2dome.h" />
   </ItemGroup>
   <ItemGroup>

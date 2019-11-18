@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		93759FF3237F05FC00C707F2 /* StopWatch.h in Headers */ = {isa = PBXBuildFile; fileRef = 93759FF2237F05FC00C707F2 /* StopWatch.h */; };
 		938EAFDA1D0C84F700ED2086 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 938EAFD61D0C84F700ED2086 /* main.cpp */; };
 		938EAFDB1D0C84F700ED2086 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 938EAFD71D0C84F700ED2086 /* main.h */; };
 		938EAFDC1D0C84F700ED2086 /* x2dome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 938EAFD81D0C84F700ED2086 /* x2dome.cpp */; };
@@ -18,6 +19,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		93759FF2237F05FC00C707F2 /* StopWatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StopWatch.h; sourceTree = "<group>"; };
 		938EAFCD1D0C83E900ED2086 /* libNexDomeV3.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libNexDomeV3.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		938EAFD61D0C84F700ED2086 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		938EAFD71D0C84F700ED2086 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 		938EAFD51D0C84E900ED2086 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				93759FF2237F05FC00C707F2 /* StopWatch.h */,
 				938EAFDE1D0C858700ED2086 /* NexDomeV3.cpp */,
 				938EAFDF1D0C858700ED2086 /* NexDomeV3.h */,
 				938EAFD61D0C84F700ED2086 /* main.cpp */,
@@ -90,6 +93,7 @@
 			files = (
 				938EAFE11D0C858700ED2086 /* NexDomeV3.h in Headers */,
 				938EAFDB1D0C84F700ED2086 /* main.h in Headers */,
+				93759FF3237F05FC00C707F2 /* StopWatch.h in Headers */,
 				938EAFDD1D0C84F700ED2086 /* x2dome.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -120,7 +124,7 @@
 		938EAFC51D0C83E900ED2086 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0940;
+				LastUpgradeCheck = 1120;
 				ORGANIZATIONNAME = "RTI-Zone";
 				TargetAttributes = {
 					938EAFCC1D0C83E900ED2086 = {
@@ -131,11 +135,11 @@
 			};
 			buildConfigurationList = 938EAFC81D0C83E900ED2086 /* Build configuration list for PBXProject "NexDomeV3" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				English,
 				en,
+				Base,
 			);
 			mainGroup = 938EAFC41D0C83E900ED2086;
 			productRefGroup = 938EAFCE1D0C83E900ED2086 /* Products */;
@@ -307,6 +311,7 @@
 					"\"$(SRCROOT)/../..\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				VALID_ARCHS = x86_64;
 			};
