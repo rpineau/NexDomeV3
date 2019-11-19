@@ -33,15 +33,15 @@
 
 #include "StopWatch.h"
 
-#define DRIVER_VERSION      1.06
+#define DRIVER_VERSION      1.07
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
 #define PLUGIN_LOG_BUFFER_SIZE 256
 
-#define CMD_WAIT_INTERVAL	250
+#define CMD_WAIT_INTERVAL	50
 
-// #define PLUGIN_DEBUG 2
+#define PLUGIN_DEBUG 2
 
 // error codes
 // Error code
