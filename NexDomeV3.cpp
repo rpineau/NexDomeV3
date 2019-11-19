@@ -411,6 +411,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 				nErr = CMD_PROC_DONE;
 			}
             else {
+                if(isdigit(szResp[1])) {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
                 ltime = time(NULL);
                 timestamp = asctime(localtime(&ltime));
@@ -422,6 +423,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
                 // convert steps to deg
                 if(m_nShutterSteps)
                     m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+                }
             }
 			break;
 
