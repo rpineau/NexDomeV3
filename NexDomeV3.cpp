@@ -394,6 +394,11 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
                 m_nCurrentRotatorPos = atoi(szResp+1); // Pxxxxx
                 // convert steps to deg
                 m_dCurrentAzPosition = (double(m_nCurrentRotatorPos)/m_nNbStepPerRev) * 360.0;
+				while(m_dCurrentAzPosition >= 360)
+					m_dCurrentAzPosition = m_dCurrentAzPosition - 360;
+				while(m_dCurrentAzPosition < 0)
+					m_dCurrentAzPosition = m_dCurrentAzPosition + 360;
+
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
                 ltime = time(NULL);
                 timestamp = asctime(localtime(&ltime));
