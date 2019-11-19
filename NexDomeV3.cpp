@@ -1801,10 +1801,12 @@ int CNexDomeV3::isOpenComplete(bool &bComplete)
     }
 
     if(isDomeMoving()) {
-        if(m_nShutterState == OPEN)
-            bComplete = true;
-        else
-            bComplete = false;
+        if(m_nCurrentShutterCmd == IDLE) {
+            if(m_nShutterState == OPEN)
+                bComplete = true;
+            else
+                bComplete = false;
+        }
         return nErr;
     }
 
@@ -1865,10 +1867,12 @@ int CNexDomeV3::isCloseComplete(bool &bComplete)
     }
 
     if(isDomeMoving()) {
-        if(m_nShutterState == CLOSED)
-            bComplete = true;
-        else
-            bComplete = false;
+        if(m_nCurrentShutterCmd == CLOSED) {
+            if(m_nShutterState == OPEN)
+                bComplete = true;
+            else
+                bComplete = false;
+        }
         return nErr;
     }
 
