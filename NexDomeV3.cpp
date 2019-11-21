@@ -68,7 +68,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_18_2140.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_21_0735.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -278,47 +278,48 @@ int CNexDomeV3::domeCommand(const char *pszCmd, char *pszResult, int nResultMaxL
     return nErr;
 }
 
+
 int CNexDomeV3::readResponse(char *szRespBuffer, int nBufferLen, int nTimeout )
 {
-	int nErr = PLUGIN_OK;
-	unsigned long ulBytesRead = 0;
-	unsigned long ulTotalBytesRead = 0;
-	char *pszBufPtr;
+    int nErr = PLUGIN_OK;
+    unsigned long ulBytesRead = 0;
+    unsigned long ulTotalBytesRead = 0;
+    char *pszBufPtr;
 
-	memset(szRespBuffer, 0, (size_t) nBufferLen);
-	pszBufPtr = szRespBuffer;
+    memset(szRespBuffer, 0, (size_t) nBufferLen);
+    pszBufPtr = szRespBuffer;
 
-	do {
-		nErr = m_pSerx->readFile(pszBufPtr, 1, ulBytesRead, nTimeout);
-		if(nErr) {
+    do {
+        nErr = m_pSerx->readFile(pszBufPtr, 1, ulBytesRead, nTimeout);
+        if(nErr) {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-			ltime = time(NULL);
-			timestamp = asctime(localtime(&ltime));
-			timestamp[strlen(timestamp) - 1] = 0;
-			fprintf(Logfile, "[%s] [CNexDomeV3::readResponse] readFile error\n", timestamp);
-			fflush(Logfile);
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] [CNexDomeV3::readResponse] readFile error\n", timestamp);
+            fflush(Logfile);
 #endif
-			return nErr;
-		}
+            return nErr;
+        }
 
-		if (ulBytesRead !=1) {// timeout
+        if (ulBytesRead !=1) {// timeout
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-			ltime = time(NULL);
-			timestamp = asctime(localtime(&ltime));
-			timestamp[strlen(timestamp) - 1] = 0;
-			fprintf(Logfile, "[%s] CNexDomeV3::readResponse Timeout while waiting for response from controller\n", timestamp);
-			fflush(Logfile);
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] CNexDomeV3::readResponse Timeout while waiting for response from controller\n", timestamp);
+            fflush(Logfile);
 #endif
             nErr = ERR_DATAOUT;
-			break;
-		}
-		ulTotalBytesRead += ulBytesRead;
-	} while (*pszBufPtr++ != 0x0a && ulTotalBytesRead < nBufferLen );
+            break;
+        }
+        ulTotalBytesRead += ulBytesRead;
+    } while (*pszBufPtr++ != 0x0a && ulTotalBytesRead < nBufferLen );
 
-	if(ulTotalBytesRead)
-		*(pszBufPtr-1) = 0; //remove the \n
+    if(ulTotalBytesRead)
+        *(pszBufPtr-1) = 0; //remove the \n
 
-	return nErr;
+    return nErr;
 }
 
 int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen)
