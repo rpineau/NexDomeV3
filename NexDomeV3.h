@@ -40,8 +40,9 @@
 #define PLUGIN_LOG_BUFFER_SIZE 256
 
 #define CMD_WAIT_INTERVAL	50
+#define CMD_RESP_READ_TIMEOUTS  5
 
-#define PLUGIN_DEBUG 2
+// #define PLUGIN_DEBUG 2
 
 // error codes
 // Error code

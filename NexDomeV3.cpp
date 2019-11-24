@@ -68,7 +68,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_21_0735.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_24_0040.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -613,7 +613,7 @@ int CNexDomeV3::getDomeAz(double &dDomeAz)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "PRR") && nb_timeout < 4) {
+    while(!strstr(szBuf, "PRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -692,7 +692,7 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "PRS") && nb_timeout < 4) {
+    while(!strstr(szBuf, "PRS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -750,7 +750,7 @@ int CNexDomeV3::getDomeHomeAz(double &dAz)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "HRR") && nb_timeout < 4) {
+    while(!strstr(szBuf, "HRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -822,7 +822,7 @@ int CNexDomeV3::getShutterState(int &nState)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "SES") && nb_timeout < 4) {
+    while(!strstr(szBuf, "SES") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -908,7 +908,7 @@ int CNexDomeV3::getDomeStepPerRev(int &nStepPerRev)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "RRR") && nb_timeout < 4) {
+    while(!strstr(szBuf, "RRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -988,7 +988,7 @@ int CNexDomeV3::getShutterSteps(int &nStepPerRev)
     nErr = domeCommand("@RRS\r\n", szResp, SERIAL_BUFFER_SIZE);
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "RRS") && nb_timeout < 4) {
+    while(!strstr(szBuf, "RRS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -1078,7 +1078,7 @@ int CNexDomeV3::getRotatorDeadZone(int &nDeadZoneSteps)
     nErr = domeCommand("@DRR\r\n", szResp, SERIAL_BUFFER_SIZE);
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "DRR") && nb_timeout < 4) {
+    while(!strstr(szBuf, "DRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -1243,7 +1243,7 @@ bool CNexDomeV3::isDomeAtHome()
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "SER") && nb_timeout < 4) {
+    while(!strstr(szBuf, "SER") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -1574,7 +1574,7 @@ int CNexDomeV3::getFirmwareVersion(char *szVersion, int nStrMaxLen)
     nErr = domeCommand("@FRR\r\n", szResp, SERIAL_BUFFER_SIZE);
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "FR") && nb_timeout < 4) {
+    while(!strstr(szBuf, "FR") && nb_timeout < (CMD_RESP_READ_TIMEOUTS*3)) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -2308,7 +2308,7 @@ int CNexDomeV3::getRotationSpeed(int &nSpeed)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "VRR") && nb_timeout < 4) {
+    while(!strstr(szBuf, "VRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -2369,7 +2369,7 @@ int CNexDomeV3::getRotationAcceleration(int &nAcceleration)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "ARR") && nb_timeout < 4) {
+    while(!strstr(szBuf, "ARR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -2434,7 +2434,7 @@ int CNexDomeV3::getShutterSpeed(int &nSpeed)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "VRS") && nb_timeout < 4) {
+    while(!strstr(szBuf, "VRS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
@@ -2503,7 +2503,7 @@ int CNexDomeV3::getShutterAcceleration(int &nAcceleration)
 
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
-    while(!strstr(szBuf, "ARS") && nb_timeout < 4) {
+    while(!strstr(szBuf, "ARS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
         readResponse(szBuf, SERIAL_BUFFER_SIZE);
