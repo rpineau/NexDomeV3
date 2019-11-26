@@ -33,7 +33,7 @@
 
 #include "StopWatch.h"
 
-#define DRIVER_VERSION      1.07
+#define DRIVER_VERSION      1.08
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
@@ -42,7 +42,7 @@
 #define CMD_WAIT_INTERVAL	50
 #define CMD_RESP_READ_TIMEOUTS  8
 
-#define PLUGIN_DEBUG 2
+// #define PLUGIN_DEBUG 2
 
 // error codes
 // Error code
