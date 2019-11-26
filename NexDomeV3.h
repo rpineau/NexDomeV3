@@ -33,14 +33,14 @@
 
 #include "StopWatch.h"
 
-#define DRIVER_VERSION      1.07
+#define DRIVER_VERSION      1.08
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
 #define PLUGIN_LOG_BUFFER_SIZE 256
 
 #define CMD_WAIT_INTERVAL	50
-#define CMD_RESP_READ_TIMEOUTS  5
+#define CMD_RESP_READ_TIMEOUTS  8
 
 // #define PLUGIN_DEBUG 2
 
@@ -207,6 +207,8 @@ protected:
 
     double          m_dShutterVolts;
 
+	int				m_nRotationDeadZone;
+	
 	CStopWatch		m_cmdDelayCheckTimer;
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
