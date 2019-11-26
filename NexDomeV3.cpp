@@ -323,6 +323,14 @@ int CNexDomeV3::readResponse(char *szRespBuffer, int nBufferLen, int nTimeout )
     if(ulTotalBytesRead)
         *(pszBufPtr-1) = 0; //remove the \n
 
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                ltime = time(NULL);
+                timestamp = asctime(localtime(&ltime));
+                timestamp[strlen(timestamp) - 1] = 0;
+                fprintf(Logfile, "[%s] [CNexDomeV3::readResponse] response = %s\n", timestamp, szRespBuffer);
+                fflush(Logfile);
+    #endif
+
     return nErr;
 }
 
@@ -337,7 +345,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 		ltime = time(NULL);
 		timestamp = asctime(localtime(&ltime));
 		timestamp[strlen(timestamp) - 1] = 0;
-		fprintf(Logfile, "[%s] [CNexDomeV3::processResponse]\n", timestamp);
+		fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] ==== START ====\n", timestamp);
 		fflush(Logfile);
 	#endif
 
@@ -522,6 +530,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
     fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] nErr = '%d'\n", timestamp, nErr);
+    fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] ==== END ====\n", timestamp);
     fflush(Logfile);
 #endif
 
@@ -536,7 +545,6 @@ int CNexDomeV3::processAsyncResponses()
     char szTmp[SERIAL_BUFFER_SIZE];
     std::string sResp;
     std::string sTmp;
-    int nb_timeout;
     
     if(!m_bIsConnected)
         return NOT_CONNECTED;
@@ -551,7 +559,6 @@ int CNexDomeV3::processAsyncResponses()
     fprintf(Logfile, "[%s] [CNexDomeV3::processAsyncResponses]\n", timestamp);
     fflush(Logfile);
 #endif
-    nb_timeout = 0;
     do {
         m_pSerx->bytesWaitingRx(nbBytesWaiting);
         if(nbBytesWaiting) {
@@ -571,8 +578,6 @@ int CNexDomeV3::processAsyncResponses()
 				nErr = processResponse(szResp, szTmp, SERIAL_BUFFER_SIZE);
 				if(nErr && nErr != CMD_PROC_DONE)
 					return nErr;
-				if(!nErr) // no error but not a CMD_PROC_DONE
-					nb_timeout++;
             }
         }
     } while(nbBytesWaiting);
@@ -618,9 +623,9 @@ int CNexDomeV3::getDomeAz(double &dDomeAz)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "PRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -631,11 +636,11 @@ int CNexDomeV3::getDomeAz(double &dDomeAz)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         dDomeAz = m_dCurrentAzPosition;
         return PLUGIN_OK;
     }
-        
+
     #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
@@ -697,9 +702,9 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "PRS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -710,7 +715,7 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
         return PLUGIN_OK;
     }
 
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         dDomeEl = m_dCurrentElPosition;
         return PLUGIN_OK;
     }
@@ -755,9 +760,9 @@ int CNexDomeV3::getDomeHomeAz(double &dAz)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "HRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -768,9 +773,9 @@ int CNexDomeV3::getDomeHomeAz(double &dAz)
         return PLUGIN_OK;
     }
 
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         dAz = m_dHomeAz;
-        return PLUGIN_OK;
+        return nErr;
     }
 
     // convert Az string to double
@@ -827,16 +832,9 @@ int CNexDomeV3::getShutterState(int &nState)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "SES") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-            ltime = time(NULL);
-            timestamp = asctime(localtime(&ltime));
-            timestamp[strlen(timestamp) - 1] = 0;
-            fprintf(Logfile, "[%s] [CNexDomeV3::getShutterState] nb_timeout = %d\n", timestamp, nb_timeout);
-            fflush(Logfile);
-        #endif
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -855,7 +853,7 @@ int CNexDomeV3::getShutterState(int &nState)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS ){
         nState = m_nShutterState;
         return PLUGIN_OK;
     }
@@ -913,9 +911,9 @@ int CNexDomeV3::getDomeStepPerRev(int &nStepPerRev)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "RRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -926,7 +924,7 @@ int CNexDomeV3::getDomeStepPerRev(int &nStepPerRev)
         return PLUGIN_OK;
     }
 
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         nStepPerRev = m_nNbStepPerRev;
         return PLUGIN_OK;
     }
@@ -993,9 +991,9 @@ int CNexDomeV3::getShutterSteps(int &nStepPerRev)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "RRS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
     
     if(nErr == CMD_PROC_DONE)
@@ -1006,7 +1004,7 @@ int CNexDomeV3::getShutterSteps(int &nStepPerRev)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         nStepPerRev = m_nShutterSteps;
         return PLUGIN_OK;
     }
@@ -1083,9 +1081,9 @@ int CNexDomeV3::getRotatorDeadZone(int &nDeadZoneSteps)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "DRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
     
     if(nErr == CMD_PROC_DONE)
@@ -1096,7 +1094,7 @@ int CNexDomeV3::getRotatorDeadZone(int &nDeadZoneSteps)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         nDeadZoneSteps = 0;
         return PLUGIN_OK;
     }
@@ -1248,9 +1246,9 @@ bool CNexDomeV3::isDomeAtHome()
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "SER") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
     
     if(nErr == CMD_PROC_DONE)
@@ -1260,7 +1258,7 @@ bool CNexDomeV3::isDomeAtHome()
         return false;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         return false;
     }
 
@@ -1399,6 +1397,8 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz               = %3.2f\n", timestamp, dNewAz);
             fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %d\n", timestamp, int(round(m_dCurrentAzPosition)));
             fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz               = %d\n", timestamp, int(round(dNewAz)));
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_nRotationDeadZone = %d\n", timestamp, m_nRotationDeadZone);
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_nCurrentRotatorPos = %d\n", timestamp, m_nCurrentRotatorPos);
 			fflush(Logfile);
 	#endif
 
@@ -1412,10 +1412,26 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 
 	// check if we're moving inside the dead zone.
 	nNewStepPos = int((dNewAz/360.0) * m_nNbStepPerRev);
+
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] nNewStepPos = %d\n", timestamp, nNewStepPos);
+            fflush(Logfile);
+    #endif
+
     if (nNewStepPos <= (m_nCurrentRotatorPos + m_nRotationDeadZone) && nNewStepPos >= (m_nCurrentRotatorPos - m_nRotationDeadZone) ) {
         m_dGotoAz = dNewAz;
 		m_bDomeIsMoving = false;
 		// send the command anyway to update the controller internal counters
+        #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+                ltime = time(NULL);
+                timestamp = asctime(localtime(&ltime));
+                timestamp[strlen(timestamp) - 1] = 0;
+                fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] move is in dead zone\n", timestamp);
+                fflush(Logfile);
+        #endif
 		nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
 		return nErr;
 	}
@@ -1590,9 +1606,9 @@ int CNexDomeV3::getFirmwareVersion(char *szVersion, int nStrMaxLen)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "FR") && nb_timeout < (CMD_RESP_READ_TIMEOUTS*3)) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -1603,7 +1619,10 @@ int CNexDomeV3::getFirmwareVersion(char *szVersion, int nStrMaxLen)
         return PLUGIN_OK;
     }
 
-
+    if(nb_timeout >= (CMD_RESP_READ_TIMEOUTS*3)) {
+        strncpy(szVersion, "Unknown", SERIAL_BUFFER_SIZE);
+        return PLUGIN_OK;
+    }
     strncpy(szTmp, szResp+2, SERIAL_BUFFER_SIZE);
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -2324,9 +2343,9 @@ int CNexDomeV3::getRotationSpeed(int &nSpeed)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "VRR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -2337,7 +2356,7 @@ int CNexDomeV3::getRotationSpeed(int &nSpeed)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         nSpeed = 0;
         return PLUGIN_OK;
     }
@@ -2385,9 +2404,9 @@ int CNexDomeV3::getRotationAcceleration(int &nAcceleration)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "ARR") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -2398,7 +2417,7 @@ int CNexDomeV3::getRotationAcceleration(int &nAcceleration)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         nAcceleration = 0;
         return PLUGIN_OK;
     }
@@ -2450,9 +2469,9 @@ int CNexDomeV3::getShutterSpeed(int &nSpeed)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "VRS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -2463,7 +2482,7 @@ int CNexDomeV3::getShutterSpeed(int &nSpeed)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         nSpeed = 0;
         return PLUGIN_OK;
     }
@@ -2519,9 +2538,9 @@ int CNexDomeV3::getShutterAcceleration(int &nAcceleration)
     nb_timeout = 0;
     memcpy(szBuf, szResp, SERIAL_BUFFER_SIZE);
     while(!strstr(szBuf, "ARS") && nb_timeout < CMD_RESP_READ_TIMEOUTS) {
+        readResponse(szBuf, SERIAL_BUFFER_SIZE);
         nErr = processResponse(szBuf, szResp, SERIAL_BUFFER_SIZE);
         nb_timeout++;
-        readResponse(szBuf, SERIAL_BUFFER_SIZE);
     }
 
     if(nErr == CMD_PROC_DONE)
@@ -2532,7 +2551,7 @@ int CNexDomeV3::getShutterAcceleration(int &nAcceleration)
         return PLUGIN_OK;
     }
     
-    if(nb_timeout >=3 ){
+    if(nb_timeout >= CMD_RESP_READ_TIMEOUTS) {
         nAcceleration = 0;
         return PLUGIN_OK;
     }
