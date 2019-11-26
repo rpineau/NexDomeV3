@@ -207,6 +207,8 @@ protected:
 
     double          m_dShutterVolts;
 
+	int				m_nRotationDeadZone;
+	
 	CStopWatch		m_cmdDelayCheckTimer;
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;

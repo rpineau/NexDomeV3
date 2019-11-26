@@ -44,6 +44,8 @@ CNexDomeV3::CNexDomeV3()
     m_bHomeOnPark = false;
     m_bHomeOnUnpark = false;
 
+	m_nRotationDeadZone = 0;
+
     memset(m_szFirmwareVersion,0,SERIAL_BUFFER_SIZE);
     memset(m_szLogBuffer,0,PLUGIN_LOG_BUFFER_SIZE);
 
@@ -185,6 +187,8 @@ int CNexDomeV3::Connect(const char *pszPort)
             m_dCurrentElPosition = 0.0;
             break;
     }
+
+	getRotatorDeadZone(m_nRotationDeadZone);
 
     return SB_OK;
 }
@@ -1374,7 +1378,7 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
     char szBuf[SERIAL_BUFFER_SIZE];
     char szResp[SERIAL_BUFFER_SIZE];
 	int nTmp;
-
+	int nNewStepPos;
 	std::vector<std::string> svFields;
 
     if(!m_bIsConnected)
@@ -1404,7 +1408,18 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 		return nErr;
 	}
 
-    snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GAR,%d\r\n", int(round(dNewAz)));
+	snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GAR,%d\r\n", int(round(dNewAz)));
+
+	// check if we're moving inside the dead zone.
+	nNewStepPos = int((dNewAz/360.0) * m_nNbStepPerRev);
+    if (nNewStepPos <= (m_nCurrentRotatorPos + m_nRotationDeadZone) && nNewStepPos >= (m_nCurrentRotatorPos - m_nRotationDeadZone) ) {
+        m_dGotoAz = dNewAz;
+		m_bDomeIsMoving = false;
+		// send the command anyway to update the controller internal counters
+		nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
+		return nErr;
+	}
+
     nErr = domeCommand(szBuf, szResp, SERIAL_BUFFER_SIZE);
     if(nErr) {
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
