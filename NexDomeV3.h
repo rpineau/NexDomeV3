@@ -33,7 +33,7 @@
 
 #include "StopWatch.h"
 
-#define DRIVER_VERSION      1.08
+#define DRIVER_VERSION      1.1
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000

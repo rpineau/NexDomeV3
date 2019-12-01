@@ -465,7 +465,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 			// we got some response, parse
             if(sResp.find(":BV") != -1) {
 				memcpy(szTmp, szResp+3, SERIAL_BUFFER_SIZE);
-				m_dShutterVolts = float(atoi(szTmp)) * 3.0 * (5.0 / 1023.0);
+				m_dShutterVolts = double(atoi(szTmp)) * 3.0 * (5.0 / 1023.0);
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
 				ltime = time(NULL);
 				timestamp = asctime(localtime(&ltime));
@@ -694,7 +694,6 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
     }
     
     dDomeEl = m_dCurrentElPosition;
-    return nErr;
     
     /// we might use this when firmware timeouts are fixed
     nErr = domeCommand("@PRS\r\n", szResp,  SERIAL_BUFFER_SIZE);
@@ -1389,16 +1388,21 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
     while(dNewAz >= 360)
         dNewAz = dNewAz - 360;
 
+    // check if we're moving inside the dead zone.
+    nNewStepPos = int((dNewAz/360.0) * m_nNbStepPerRev);
+
 	#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
 			ltime = time(NULL);
 			timestamp = asctime(localtime(&ltime));
 			timestamp[strlen(timestamp) - 1] = 0;
-			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %3.2f\n", timestamp, m_dCurrentAzPosition);
-			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz               = %3.2f\n", timestamp, dNewAz);
-            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition = %d\n", timestamp, int(round(m_dCurrentAzPosition)));
-            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz               = %d\n", timestamp, int(round(dNewAz)));
-            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_nRotationDeadZone = %d\n", timestamp, m_nRotationDeadZone);
-            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_nCurrentRotatorPos = %d\n", timestamp, m_nCurrentRotatorPos);
+			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_dCurrentAzPosition        = %3.2f\n", timestamp, m_dCurrentAzPosition);
+			fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] dNewAz                      = %3.2f\n", timestamp, dNewAz);
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] round(m_dCurrentAzPosition) = %d\n", timestamp, int(round(m_dCurrentAzPosition)));
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] round(dNewAz)               = %d\n", timestamp, int(round(dNewAz)));
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_nRotationDeadZone         = %d\n", timestamp, m_nRotationDeadZone);
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_nCurrentRotatorPos        = %d\n", timestamp, m_nCurrentRotatorPos);
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] nNewStepPos                 = %d\n", timestamp, nNewStepPos);
+            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] m_fVersion                  = %3.2f\n", timestamp, m_fVersion);
 			fflush(Logfile);
 	#endif
 
@@ -1408,19 +1412,12 @@ int CNexDomeV3::gotoAzimuth(double dNewAz)
 		return nErr;
 	}
 
-	snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GAR,%d\r\n", int(round(dNewAz)));
-
-	// check if we're moving inside the dead zone.
-	nNewStepPos = int((dNewAz/360.0) * m_nNbStepPerRev);
-
-    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-            ltime = time(NULL);
-            timestamp = asctime(localtime(&ltime));
-            timestamp[strlen(timestamp) - 1] = 0;
-            fprintf(Logfile, "[%s] [CNexDomeV3::gotoAzimuth] nNewStepPos = %d\n", timestamp, nNewStepPos);
-            fflush(Logfile);
-    #endif
-
+    if( m_fVersion >= 3.2) {
+        snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GSR,%d\r\n", nNewStepPos);
+    } else {
+        snprintf(szBuf, SERIAL_BUFFER_SIZE, "@GAR,%d\r\n", int(round(dNewAz)));
+    }
+    
     if (nNewStepPos <= (m_nCurrentRotatorPos + m_nRotationDeadZone) && nNewStepPos >= (m_nCurrentRotatorPos - m_nRotationDeadZone) ) {
         m_dGotoAz = dNewAz;
 		m_bDomeIsMoving = false;
