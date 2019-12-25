@@ -19,7 +19,8 @@ CNexDomeV3::CNexDomeV3()
     m_dShutterBatteryVolts = 0.0;
     
     m_dHomeAz = 0;
-
+    m_bHasBeenHomed  = false;
+    
 	m_nCurrentRotatorPos = 0;
 	
     m_dCurrentAzPosition = 0.0;
@@ -31,8 +32,7 @@ CNexDomeV3::CNexDomeV3()
 	m_nCurrentShutterCmd = IDLE;
 
     m_bParked = true;
-    m_bHomed = false;
-
+    
     m_fVersion = 0.0;
 
     m_nIsRaining = NOT_RAINING;
@@ -70,7 +70,7 @@ CNexDomeV3::CNexDomeV3()
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_11_25_1940.\n", timestamp, DRIVER_VERSION);
+    fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_12_06_1810.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
     fflush(Logfile);
 #endif
@@ -106,7 +106,6 @@ int CNexDomeV3::Connect(const char *pszPort)
     }
     m_bIsConnected = true;
 	m_bDomeIsMoving = false;
-    m_bHomed = false;
     m_bParking = false;
     m_bUnParking = false;
 
@@ -203,7 +202,6 @@ void CNexDomeV3::Disconnect()
     }
     m_bIsConnected = false;
 	m_bDomeIsMoving = false;
-    m_bHomed = false;
     m_bParking = false;
     m_bUnParking = false;
 
@@ -1261,7 +1259,7 @@ bool CNexDomeV3::isDomeAtHome()
         return false;
     }
 
-     // need to parse :SER,0,0,99498,0,300#
+     // need to parse :SER,0,1,99498,0,300#
     nErr = parseFields(szResp, rotatorStateFields, ',');
     if(nErr)
         return false;
@@ -1269,7 +1267,16 @@ bool CNexDomeV3::isDomeAtHome()
         return false;
     
     bAtHome = rotatorStateFields[2] == "1";
-    
+    // SER could report at home when we're not, so check the current position in case we're home. Because firmware .....
+    if(bAtHome) {
+        getDomeAz(m_dCurrentAzPosition);
+        if ((ceil(m_dHomeAz) <= ceil(m_dCurrentAzPosition)) && (ceil(m_dHomeAz) >= ceil(m_dCurrentAzPosition))) {
+            bAtHome = true;
+        } else {
+            bAtHome = false;
+        }
+    }
+        
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -1693,7 +1700,6 @@ int CNexDomeV3::goHome()
         return SB_OK;
     }
     else if(isDomeAtHome()){
-            m_bHomed = true;
             syncDome(m_dHomeAz,m_dCurrentElPosition);
         #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
             ltime = time(NULL);
@@ -2017,7 +2023,6 @@ int CNexDomeV3::isParkComplete(bool &bComplete)
     else {
         // we're not moving and we're not at the final destination !!!
         bComplete = false;
-        m_bHomed = false;
         m_bParked = false;
         nErr = ERR_CMDFAILED;
     }
@@ -2102,7 +2107,6 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
 #endif
 
     if(isDomeMoving()) {
-        m_bHomed = false;
         bComplete = false;
 #ifdef PLUGIN_DEBUG
         ltime = time(NULL);
@@ -2117,7 +2121,6 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
     }
 
 	if(isDomeAtHome()){
-        m_bHomed = true;
         if(m_bUnParking)
             m_bParked = false;
         bComplete = true;
@@ -2140,7 +2143,6 @@ int CNexDomeV3::isFindHomeComplete(bool &bComplete)
         fflush(Logfile);
 #endif
         bComplete = false;
-        m_bHomed = false;
         nErr = ERR_CMDFAILED;
     }
 
@@ -2163,7 +2165,6 @@ int CNexDomeV3::abortCurrentCommand()
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
-    m_bHomed = false;
     m_bParked = false;
 	m_bDomeIsMoving = false;
     m_bParking = false;
