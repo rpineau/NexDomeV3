@@ -33,7 +33,7 @@
 
 #include "StopWatch.h"
 
-#define DRIVER_VERSION      1.1
+#define DRIVER_VERSION      1.2
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
@@ -169,11 +169,11 @@ protected:
     SleeperInterface *m_pSleeper;
 
     bool            m_bIsConnected;
-    bool            m_bHomed;
     bool            m_bParked;
     bool            m_bShutterOpened;
 	bool			m_bDomeIsMoving;
-
+    bool            m_bHasBeenHomed;
+    
     int             m_nNbStepPerRev;
     double          m_dShutterBatteryVolts;
     double          m_dHomeAz;
