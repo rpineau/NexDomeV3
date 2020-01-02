@@ -1,13 +1,18 @@
 #!/bin/bash
 
+PACKAGE_NAME="NexDomeV3_X2.pkg"
+BUNDLE_NAME="org.rti-zone.NexDomeV3X2"
+
+if [ ! -z "$app_id_signature" ]; then
+    codesign -f -s "$app_id_signature" --verbose ../build/Release/libNexDomeV3.dylib
+fi
+
 mkdir -p ROOT/tmp/NexDomeV3_X2/
 cp "../NexDomeV3.ui" ROOT/tmp/NexDomeV3_X2/
 cp "../NexDome.png" ROOT/tmp/NexDomeV3_X2/
 cp "../domelist NexDomeV3.txt" ROOT/tmp/NexDomeV3_X2/
 cp "../build/Release/libNexDomeV3.dylib" ROOT/tmp/NexDomeV3_X2/
 
-PACKAGE_NAME="NexDomeV3_X2.pkg"
-BUNDLE_NAME="org.rti-zone.NexDomeV3X2"
 
 if [ ! -z "$installer_signature" ]; then
 	# signed package using env variable installer_signature
