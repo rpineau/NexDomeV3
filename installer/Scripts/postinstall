@@ -30,10 +30,16 @@ echo "Installing in $PLUGINS_DIR/DomePlugIns/"
 
 cp "/tmp/NexDomeV3_X2/domelist NexDomeV3.txt" "$TheSkyX_Path/Resources/Common/Miscellaneous Files/"
 if [ "$?" -ne "0" ]; then exit 1; fi
+
+rm -f "$PLUGINS_DIR/DomePlugIns/NexDomeV3.ui"
 cp "/tmp/NexDomeV3_X2/NexDomeV3.ui" "$PLUGINS_DIR/DomePlugIns/"
 if [ "$?" -ne "0" ]; then exit 1; fi
+
+rm -f "$PLUGINS_DIR/DomePlugIns/NexDome.png"
 cp "/tmp/NexDomeV3_X2/NexDome.png" "$PLUGINS_DIR/DomePlugIns/"
 if [ "$?" -ne "0" ]; then exit 1; fi
+
+rm -f "$PLUGINS_DIR/DomePlugIns/libNexDomeV3.dylib"
 cp "/tmp/NexDomeV3_X2/libNexDomeV3.dylib" "$PLUGINS_DIR/DomePlugIns/"
 if [ "$?" -ne "0" ]; then exit 1; fi
 
