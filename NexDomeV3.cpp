@@ -175,11 +175,13 @@ int CNexDomeV3::Connect(const char *pszPort)
     switch(m_nShutterState) {
         case OPEN :
             m_bShutterOpened = true;
-            m_dCurrentElPosition = 90.0;
+            //m_dCurrentElPosition = 90.0;
+            getDomeEl(m_dCurrentElPosition);
             break;
         case CLOSED :
             m_bShutterOpened = false;
-            m_dCurrentElPosition = 0.0;
+            // m_dCurrentElPosition = 0.0;
+            getDomeEl(m_dCurrentElPosition);
             break;
         default :
             m_bShutterOpened = false;
@@ -438,7 +440,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
                 m_nCurrentShutterPos = atoi(szResp+1); // Sxxxxx
                 // convert steps to deg
                 if(m_nShutterSteps)
-                    m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+                    m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 104.0;
                 }
             }
 			break;
@@ -613,6 +615,13 @@ int CNexDomeV3::getDomeAz(double &dDomeAz)
     
     if(m_bDomeIsMoving) {
 		dDomeAz = m_dCurrentAzPosition;
+        #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] [CNexDomeV3::getDomeAz] dDomeAz = %3.2f\n", timestamp, dDomeAz);
+            fflush(Logfile);
+        #endif
 		return nErr;
 	}
     
@@ -681,8 +690,24 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
     if(!m_bIsConnected)
         return NOT_CONNECTED;
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CNexDomeV3::getDomeEl]\n", timestamp);
+    fflush(Logfile);
+#endif
+
+
 	if(m_bDomeIsMoving) {
 		dDomeEl = m_dCurrentElPosition;
+        #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] [CNexDomeV3::getDomeEl] dDomeEl = %3.2f\n", timestamp, dDomeEl);
+            fflush(Logfile);
+        #endif
 		return nErr;
 	}
 
@@ -719,8 +744,13 @@ int CNexDomeV3::getDomeEl(double &dDomeEl)
 
     // convert steps to deg
     m_nCurrentShutterPos = atoi(szResp+3); // PRSxxx
-    
-    dDomeEl = (double(m_nCurrentShutterPos)/m_nNbStepPerRev) * 360.0;
+    if(m_nShutterSteps)
+        dDomeEl = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 104.0;
+    else {
+        getShutterSteps(m_nShutterSteps);
+        if(m_nShutterSteps)
+            dDomeEl = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 104.0;
+    }
     m_dCurrentElPosition = dDomeEl;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -1197,7 +1227,7 @@ bool CNexDomeV3::isDomeMoving()
                         if(isdigit(szResp[1])) {
                             m_nCurrentShutterPos = atoi(szResp+1);
                             if(m_nShutterSteps)
-                                m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 360.0;
+                                m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 104.0; // max apperture of the dome
                         }
                         break;
 					case ':' :
@@ -1207,6 +1237,13 @@ bool CNexDomeV3::isDomeMoving()
 						}
                         else if(strstr(szResp,"SES")) {
                             m_bDomeIsMoving = false;
+                        }
+                        else if(strstr(szResp,":S")) {
+                            if(isdigit(szResp[2])) {
+                                m_nCurrentShutterPos = atoi(szResp+2);
+                                if(m_nShutterSteps)
+                                    m_dCurrentElPosition = (double(m_nCurrentShutterPos)/m_nShutterSteps) * 104.0; // max apperture of the dome
+                            }
                         }
 						break;
 					default:
@@ -1868,12 +1905,14 @@ int CNexDomeV3::isOpenComplete(bool &bComplete)
     if(nState == OPEN){
         m_bShutterOpened = true;
         bComplete = true;
-        m_dCurrentElPosition = 90.0;
+        getDomeEl(m_dCurrentElPosition);
+        // m_dCurrentElPosition = 90.0;
     }
     else {
         m_bShutterOpened = false;
         bComplete = false;
-        m_dCurrentElPosition = 0.0;
+        // m_dCurrentElPosition = 0.0;
+        getDomeEl(m_dCurrentElPosition);
     }
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -1933,12 +1972,14 @@ int CNexDomeV3::isCloseComplete(bool &bComplete)
     if(nState == CLOSED){
         m_bShutterOpened = false;
         bComplete = true;
-        m_dCurrentElPosition = 0.0;
+        // m_dCurrentElPosition = 0.0;
+        getDomeEl(m_dCurrentElPosition);
     }
     else {
         m_bShutterOpened = true;
         bComplete = false;
-        m_dCurrentElPosition = 90.0;
+        // m_dCurrentElPosition = 90.0;
+        getDomeEl(m_dCurrentElPosition);
     }
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
