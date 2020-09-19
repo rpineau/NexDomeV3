@@ -121,6 +121,8 @@ int CNexDomeV3::Connect(const char *pszPort)
     if(m_pSleeper)
         m_pSleeper->sleep(2000);
     
+    m_pSerx->purgeTxRx();
+    
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
