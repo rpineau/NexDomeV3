@@ -44,7 +44,7 @@
 
 #define RAIN_CHECK_INTERVAL 10
 
-#define PLUGIN_DEBUG 2
+// #define PLUGIN_DEBUG 2
 
 // error codes
 // Error code
