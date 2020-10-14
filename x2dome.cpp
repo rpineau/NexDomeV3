@@ -32,9 +32,11 @@ X2Dome::X2Dome(const char* pszSelection,
         m_bHasShutterControl = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_SHUTTER_CONTROL, false);
         m_bHomeOnPark = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_HOME_ON_PARK, false);
         m_bHomeOnUnpark = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_HOME_ON_UNPARK, false);
+        m_bLogRainStatus = m_pIniUtil->readInt(PARENT_KEY, CHILD_KEY_LOG_RAIN_STATUS, false);
         m_NexDome.setHomeOnPark(m_bHomeOnPark);
         m_NexDome.setHomeOnUnpark(m_bHomeOnUnpark);
         m_NexDome.setShutterPresent(m_bHasShutterControl);
+        m_NexDome.enableRainStatusFile(m_bLogRainStatus);
     }
 }
 
@@ -121,6 +123,7 @@ int X2Dome::execModalSettingsDialog()
     X2GUIExchangeInterface*			dx = NULL;//Comes after ui is loaded
     bool bPressedOK = false;
     char szTmpBuf[SERIAL_BUFFER_SIZE];
+    std::string fName;
     double dHomeAz = 0.0;
     double dParkAz = 0.0;
     double dShutterBattery = 0.0;
@@ -169,7 +172,22 @@ int X2Dome::execModalSettingsDialog()
     }
 
     dx->setEnabled("parkPosition",true);
+    if(m_bLogRainStatus) {
+        dx->setChecked("checkBox",true);
+        m_NexDome.getRainStatusFileName(fName);
+        dx->setPropertyString("filePath","text", fName.c_str());
+    }
+    else {
+        dx->setChecked("checkBox",false);
+        dx->setPropertyString("filePath","text", "");
+    }
 
+    if(m_bLogRainStatus) {
+        dx->setChecked("homeOnUnpark",true);
+    }
+    else {
+        dx->setChecked("homeOnUnpark",false);
+    }
     if(m_bLinked) {
 		dx->setEnabled("pushButton",true);	 // reset to factory
         dx->setEnabled("homePosition",true);
@@ -265,10 +283,15 @@ int X2Dome::execModalSettingsDialog()
         m_bHasShutterControl = dx->isChecked("hasShutterCtrl");
         m_bHomeOnPark = dx->isChecked("homeOnPark");
         m_bHomeOnUnpark = dx->isChecked("homeOnUnpark");
+        m_bLogRainStatus = dx->isChecked("checkBox");
+
+        m_NexDome.setShutterPresent(m_bHasShutterControl);
         m_NexDome.setHomeOnPark(m_bHomeOnPark);
         m_NexDome.setHomeOnUnpark(m_bHomeOnUnpark);
         m_NexDome.setParkAz(dParkAz);
+        m_NexDome.enableRainStatusFile(m_bLogRainStatus);
         if(m_bLinked) {
+            
             nErr = m_NexDome.setHomeAz(dHomeAz);
             if(n_nbStepPerRev)
                 nErr |= m_NexDome.setNbTicksPerRev(n_nbStepPerRev);
@@ -278,7 +301,7 @@ int X2Dome::execModalSettingsDialog()
                 nErr |= m_NexDome.setRotationAcceleration(nRAcc);
             if(nDeadZoneSteps)
                 nErr |= m_NexDome.setRotatorDeadZone(nDeadZoneSteps);
-			if(m_bHasShutterControl) {
+            if(m_bHasShutterControl) {
                 if(n_ShutterSteps)
                     nErr |= m_NexDome.setShutterStepsRange(n_ShutterSteps);
                 if(nSSpeed)
@@ -286,6 +309,8 @@ int X2Dome::execModalSettingsDialog()
                 if(nSAcc)
                     nErr |= m_NexDome.setShutterAcceleration(nSAcc);
 			}
+            else
+            
             nErr |= m_NexDome.saveParamToEEProm();
         }
         // save the values to persistent storage
@@ -293,6 +318,7 @@ int X2Dome::execModalSettingsDialog()
         nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_SHUTTER_CONTROL, m_bHasShutterControl);
         nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_HOME_ON_PARK, m_bHomeOnPark);
         nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_HOME_ON_UNPARK, m_bHomeOnUnpark);
+        nErr |= m_pIniUtil->writeInt(PARENT_KEY, CHILD_KEY_LOG_RAIN_STATUS, m_bLogRainStatus);
     }
     return nErr;
 
@@ -302,7 +328,8 @@ void X2Dome::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
 {
     int nErr;
     double dShutterBattery;
-    char szTmpBuf[SERIAL_BUFFER_SIZE];    
+    char szTmpBuf[SERIAL_BUFFER_SIZE];
+    std::string fName;
     int nRainSensorStatus = NOT_RAINING;
     int n_nbStepPerRev = 0;
     int n_ShutterSteps = 0;
@@ -357,6 +384,20 @@ void X2Dome::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
             }
         }
     }
+    
+    if (!strcmp(pszEvent, "on_checkBox_stateChanged"))
+    {
+        m_bLogRainStatus = uiex->isChecked("checkBox");
+        if(m_bLogRainStatus) {
+            m_NexDome.getRainStatusFileName(fName);
+            uiex->setPropertyString("filePath","text", fName.c_str());
+        }
+        else {
+            uiex->setPropertyString("filePath","text", "");
+        }
+    }
+    
+    
 }
 
 //

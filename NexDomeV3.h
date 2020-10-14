@@ -33,7 +33,7 @@
 
 #include "StopWatch.h"
 
-#define DRIVER_VERSION      1.3
+#define DRIVER_VERSION      1.4
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
@@ -41,6 +41,8 @@
 
 #define CMD_WAIT_INTERVAL	50
 #define CMD_RESP_READ_TIMEOUTS  8
+
+#define RAIN_CHECK_INTERVAL 10
 
 // #define PLUGIN_DEBUG 2
 
@@ -135,6 +137,9 @@ public:
     void setHomeOnPark(const bool bEnabled);
     void setHomeOnUnpark(const bool bEnabled);
 
+    void enableRainStatusFile(bool bEnable);
+    void getRainStatusFileName(std::string &fName);
+    
 protected:
     
 	int             domeCommand(const char *cmd, char *result, int resultMaxLen);
@@ -156,6 +161,7 @@ protected:
     bool            isDomeMoving();
     bool            isDomeAtHome();
     
+    void            writeRainStatus();
     
     int             parseFields(const char *pszResp, std::vector<std::string> &svFields, char cSeparator);
 
@@ -208,8 +214,12 @@ protected:
     double          m_dShutterVolts;
 
 	int				m_nRotationDeadZone;
-	
+    bool            m_bSaveRainStatus;
+    
 	CStopWatch		m_cmdDelayCheckTimer;
+    std::string     m_sRainStatusfilePath;
+    FILE            *RainStatusfile;
+
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
     // timestamp for logs

@@ -36,6 +36,9 @@ CNexDomeV3::CNexDomeV3()
     m_fVersion = 0.0;
 
     m_nIsRaining = NOT_RAINING;
+    m_bSaveRainStatus = false;
+    RainStatusfile = NULL;
+
     m_bParking = false;
     m_bUnParking = false;
     
@@ -43,7 +46,6 @@ CNexDomeV3::CNexDomeV3()
     
     m_bHomeOnPark = false;
     m_bHomeOnUnpark = false;
-
 	m_nRotationDeadZone = 0;
 
     memset(m_szFirmwareVersion,0,SERIAL_BUFFER_SIZE);
@@ -66,12 +68,26 @@ CNexDomeV3::CNexDomeV3()
     Logfile = fopen(m_sLogfilePath.c_str(), "w");
 #endif
 
+    
+#if defined(SB_WIN_BUILD)
+    m_sRainStatusfilePath = getenv("HOMEDRIVE");
+    m_sRainStatusfilePath += getenv("HOMEPATH");
+    m_sRainStatusfilePath += "\\NDV3_Rain.txt";
+#elif defined(SB_LINUX_BUILD)
+    m_sRainStatusfilePath = getenv("HOME");
+    m_sRainStatusfilePath += "/NDV3_Rain.txt";
+#elif defined(SB_MAC_BUILD)
+    m_sRainStatusfilePath = getenv("HOME");
+    m_sRainStatusfilePath += "/NDV3_Rain.txt";
+#endif
+    
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
     fprintf(Logfile, "[%s] [CNexDomeV3::CNexDomeV3] Version %3.2f build 2019_12_06_1810.\n", timestamp, DRIVER_VERSION);
     fprintf(Logfile, "[%s] [CNexDomeV3] Constructor Called.\n", timestamp);
+    fprintf(Logfile, "[%s] [CNexDomeV3] Rains status file : '%s'.\n", timestamp, m_sRainStatusfilePath.c_str());
     fflush(Logfile);
 #endif
 
@@ -81,9 +97,13 @@ CNexDomeV3::~CNexDomeV3()
 {
 #ifdef	PLUGIN_DEBUG
     // Close LogFile
-    if (Logfile) fclose(Logfile);
+    if (Logfile)
+        fclose(Logfile);
 #endif
-
+    if(RainStatusfile) {
+        fclose(RainStatusfile);
+        RainStatusfile = NULL;
+    }
 }
 
 int CNexDomeV3::Connect(const char *pszPort)
@@ -120,6 +140,8 @@ int CNexDomeV3::Connect(const char *pszPort)
     // the arduino take over a second to start as it need to init the XBee
     if(m_pSleeper)
         m_pSleeper->sleep(2000);
+    
+    m_pSerx->purgeTxRx();
     
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -483,6 +505,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 				fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] NOT_RAINING\n", timestamp);
 				fflush(Logfile);
 #endif
+                writeRainStatus();
 			}
             else if(sResp.find(":Rain") != -1) {
 				m_nIsRaining = RAINING;
@@ -493,6 +516,7 @@ int CNexDomeV3::processResponse(char *szResp, char *pszResult, int nResultMaxLen
 				fprintf(Logfile, "[%s] [CNexDomeV3::processResponse] RAINING\n", timestamp);
 				fflush(Logfile);
 #endif
+                writeRainStatus();
 			}
             else if(sResp.find(":left") != -1) {
                 strncpy(pszResult, szResp+1, nResultMaxLen);
@@ -2686,6 +2710,53 @@ void CNexDomeV3::setHomeOnUnpark(const bool bEnabled)
     m_bHomeOnUnpark = bEnabled;
 }
 
+void CNexDomeV3::enableRainStatusFile(bool bEnable)
+{
+    if(bEnable) {
+        if(!RainStatusfile)
+            RainStatusfile = fopen(m_sRainStatusfilePath.c_str(), "w");
+        if(RainStatusfile) {
+            m_bSaveRainStatus = true;
+            writeRainStatus();
+        }
+        else { // if we failed to open the file.. don't log ..
+            RainStatusfile = NULL;
+            m_bSaveRainStatus = false;
+        }
+    }
+    else {
+        if(RainStatusfile) {
+            fclose(RainStatusfile);
+            RainStatusfile = NULL;
+        }
+        m_bSaveRainStatus = false;
+    }
+}
+
+void CNexDomeV3::getRainStatusFileName(std::string &fName)
+{
+    fName.assign(m_sRainStatusfilePath);
+}
+
+void CNexDomeV3::writeRainStatus()
+{
+#ifdef PLUGIN_DEBUG
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CNexDomeV3::writeRainStatus] m_nIsRaining =  %s\n", timestamp, m_nIsRaining==RAINING?"Raining":"Not Raining");
+    fprintf(Logfile, "[%s] [CNexDomeV3::writeRainStatus] m_bSaveRainStatus =  %s\n", timestamp, m_bSaveRainStatus?"YES":"NO");
+    fflush(Logfile);
+#endif
+
+    if(m_bSaveRainStatus && RainStatusfile) {
+        int nStatus;
+        getRainSensorStatus(nStatus);
+        fseek(RainStatusfile, 0, SEEK_SET);
+        fprintf(RainStatusfile, "Rainning:%s", nStatus == RAINING?"YES":"NO");
+        fflush(RainStatusfile);
+    }
+}
 
 int CNexDomeV3::parseFields(const char *pszResp, std::vector<std::string> &svFields, char cSeparator)
 {
