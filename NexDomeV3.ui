@@ -491,7 +491,7 @@
         <x>16</x>
         <y>256</y>
         <width>296</width>
-        <height>168</height>
+        <height>160</height>
        </rect>
       </property>
       <property name="title">
@@ -601,7 +601,7 @@
        <property name="geometry">
         <rect>
          <x>16</x>
-         <y>128</y>
+         <y>120</y>
          <width>264</width>
          <height>24</height>
         </rect>

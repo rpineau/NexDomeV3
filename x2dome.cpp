@@ -172,6 +172,7 @@ int X2Dome::execModalSettingsDialog()
     }
 
     dx->setEnabled("parkPosition",true);
+
     if(m_bLogRainStatus) {
         dx->setChecked("checkBox",true);
         m_NexDome.getRainStatusFileName(fName);
@@ -182,12 +183,7 @@ int X2Dome::execModalSettingsDialog()
         dx->setPropertyString("filePath","text", "");
     }
 
-    if(m_bLogRainStatus) {
-        dx->setChecked("homeOnUnpark",true);
-    }
-    else {
-        dx->setChecked("homeOnUnpark",false);
-    }
+    
     if(m_bLinked) {
 		dx->setEnabled("pushButton",true);	 // reset to factory
         dx->setEnabled("homePosition",true);
@@ -396,8 +392,6 @@ void X2Dome::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
             uiex->setPropertyString("filePath","text", "");
         }
     }
-    
-    
 }
 
 //
