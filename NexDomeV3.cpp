@@ -2753,7 +2753,7 @@ void CNexDomeV3::writeRainStatus()
         int nStatus;
         getRainSensorStatus(nStatus);
         fseek(RainStatusfile, 0, SEEK_SET);
-        fprintf(RainStatusfile, "Rainning:%s", nStatus == RAINING?"YES":"NO");
+        fprintf(RainStatusfile, "Raining:%s", nStatus == RAINING?"YES":"NO");
         fflush(RainStatusfile);
     }
 }
