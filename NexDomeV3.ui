@@ -366,7 +366,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>Shutter of steps per open/close :</string>
+        <string>Shutter steps per open/close :</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
