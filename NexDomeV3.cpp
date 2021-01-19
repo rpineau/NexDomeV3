@@ -1688,7 +1688,10 @@ int CNexDomeV3::getFirmwareVersion(char *szVersion, int nStrMaxLen)
         strncpy(szVersion, "Unknown", SERIAL_BUFFER_SIZE);
         return PLUGIN_OK;
     }
-    strncpy(szTmp, szResp+2, SERIAL_BUFFER_SIZE);
+    if(szResp[2] == 'S' || szResp[2] == 'R') // V4
+        strncpy(szTmp, szResp+3, SERIAL_BUFFER_SIZE);
+    else // V3
+        strncpy(szTmp, szResp+2, SERIAL_BUFFER_SIZE);
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
